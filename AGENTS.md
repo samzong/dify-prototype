@@ -55,6 +55,22 @@ Primary synced sources:
 - Do not connect prototypes to real Dify backend services unless the user explicitly requests it.
 - Do not edit synced upstream mirrors directly. Put prototype adapters, fixtures, and new screens in the prototype app or prototype kit.
 
+## DESIGN.md Memory
+
+Before creating or updating a prototype screen, read root `DESIGN.md` after syncing and locating the closest Dify source paths.
+
+`DESIGN.md` is the project design-memory layer for agents. It summarizes the durable Dify Prototype visual rules, tokens, component constraints, and maintenance expectations. It does not override synced Dify source; when `DESIGN.md` conflicts with real Dify source, trust the source and update `DESIGN.md` if the rule has changed.
+
+Maintain `DESIGN.md` whenever any durable prototype design rule changes, including visual authority, token usage, typography, spacing, radii, elevation, component usage, icon systems, screen layout patterns, or recurring do/don't guidance.
+
+After editing `DESIGN.md`, validate it with:
+
+```bash
+pnpm dlx @google/design.md lint DESIGN.md
+```
+
+Keep `DESIGN.md` and this file in English because they are repository-tracked agent instructions.
+
 ## Vocabulary
 
 - `knowledgebase`, `knowledge base`, and `知识库` map to Dify `datasets`.
