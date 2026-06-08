@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "ignoreDeprecations": "6.0",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["vite/client", "node"],
+    "paths": {
+      "@langgenius/dify-ui/styles.css": ["../../packages/dify-ui/src/styles/styles.css"],
+      "@langgenius/dify-ui/cn": ["../../packages/dify-ui/src/cn.ts"],
+      "@langgenius/dify-ui/*": ["../../packages/dify-ui/src/*/index.tsx"],
+      "@dify/iconify-collections/custom-public": ["../../packages/iconify-collections/custom-public/index.mjs"],
+      "@dify/iconify-collections/custom-vender": ["../../packages/iconify-collections/custom-vender/index.mjs"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

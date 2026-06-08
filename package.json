@@ -1,0 +1,26 @@
+{
+  "name": "dify-prototype",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@11.5.2",
+  "scripts": {
+    "dev": "pnpm -C apps/prototype dev",
+    "build": "pnpm -C apps/prototype build",
+    "sync:dify": "node scripts/sync-dify.mjs"
+  },
+  "dependencies": {
+    "@base-ui/react": "1.5.0",
+    "@dify/iconify-collections": "file:packages/iconify-collections",
+    "@dify/tsconfig": "file:packages/tsconfig",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "tailwind-merge": "3.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.2",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3"
+  }
+}

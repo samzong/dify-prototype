@@ -1,0 +1,24 @@
+{
+  "repo": "https://github.com/langgenius/dify.git",
+  "branch": "main",
+  "commit": "a15ecf6becd476f078a08c1bdc999d47ee315800",
+  "syncedAt": "2026-06-08T08:33:59.978Z",
+  "paths": [
+    "packages/dify-ui",
+    "packages/iconify-collections",
+    "packages/tsconfig",
+    "dify-source/web/app/styles",
+    "dify-source/web/themes",
+    "dify-source/web/app/signin",
+    "dify-source/web/app/components/base",
+    "dify-source/web/app/components/header",
+    "dify-source/web/app/components/app-sidebar",
+    "dify-source/web/app/components/apps",
+    "dify-source/web/app/components/app",
+    "dify-source/web/app/components/datasets",
+    "dify-source/web/app/components/workflow",
+    "dify-source/web/features/tag-management",
+    "dify-source/web/i18n/en-US",
+    "dify-source/web/public"
+  ]
+}

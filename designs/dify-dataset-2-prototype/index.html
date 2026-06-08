@@ -1,0 +1,1814 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dify Knowledge 2.0 原型</title>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --body: #f7f8fa;
+      --panel: #ffffff;
+      --muted: #f2f4f7;
+      --soft: #f8fafc;
+      --line: #e4e7ec;
+      --line-soft: #eef0f4;
+      --primary: #101828;
+      --secondary: #344054;
+      --tertiary: #667085;
+      --weak: #98a2b3;
+      --blue: #155eef;
+      --blue-soft: #eff4ff;
+      --green: #027a48;
+      --green-soft: #ecfdf3;
+      --amber: #b54708;
+      --amber-soft: #fffaeb;
+      --red: #b42318;
+      --red-soft: #fef3f2;
+      --violet: #6941c6;
+      --violet-soft: #f4f3ff;
+      --cyan: #026aa2;
+      --cyan-soft: #f0f9ff;
+      --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+      --shadow-md: 0 14px 30px rgba(16, 24, 40, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--body);
+      color: var(--primary);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 18px;
+      line-height: 26px;
+      letter-spacing: 0;
+    }
+
+    .icon {
+      width: 15px;
+      height: 15px;
+      stroke-width: 2;
+      flex: 0 0 auto;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .title-icon,
+    .space-icon {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 16px;
+      padding: 14px 48px 10px;
+      background: rgba(247, 248, 250, 0.94);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(228, 231, 236, 0.72);
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      grid-column: 1;
+    }
+
+    .title-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      color: var(--blue);
+      box-shadow: var(--shadow-xs);
+    }
+
+    .subtitle {
+      margin-top: 2px;
+      color: var(--tertiary);
+      font-size: 12px;
+    }
+
+    .switcher {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 3px;
+      border-radius: 10px;
+      background: #eef2f6;
+      border: 1px solid var(--line-soft);
+      flex-wrap: wrap;
+      grid-column: 2;
+      justify-self: center;
+    }
+
+    .view-button,
+    .segment,
+    .tab-button {
+      border: 0;
+      background: transparent;
+      color: var(--tertiary);
+      font-weight: 650;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .view-button {
+      min-height: 30px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
+
+    .view-button.active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: var(--shadow-xs);
+    }
+
+    .view {
+      display: none;
+      padding: 12px 48px 40px;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 4px 0 12px;
+    }
+
+    .button,
+    .input,
+    .select {
+      min-height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--secondary);
+      box-shadow: var(--shadow-xs);
+      outline: none;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 10px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .button.primary {
+      background: var(--blue);
+      color: #ffffff;
+      border-color: var(--blue);
+    }
+
+    .button.ghost {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    .input {
+      width: 220px;
+      padding: 0 10px 0 32px;
+    }
+
+    .select {
+      padding: 0 30px 0 10px;
+    }
+
+    .search {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search .icon {
+      position: absolute;
+      left: 10px;
+      color: var(--weak);
+    }
+
+    .checkline {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--secondary);
+      font-weight: 550;
+      white-space: nowrap;
+    }
+
+    .checkline input,
+    .picker input {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--blue);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .create-card,
+    .space-card,
+    .panel,
+    .cap-card,
+    .node-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-xs);
+    }
+
+    .create-card,
+    .space-card {
+      min-height: 190px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .create-card {
+      background: var(--muted);
+      border-color: transparent;
+      display: grid;
+      grid-template-rows: 1fr auto;
+    }
+
+    .create-main {
+      display: grid;
+      gap: 6px;
+      align-content: center;
+      padding: 12px;
+    }
+
+    .create-footer {
+      border-top: 1px solid var(--line);
+      padding: 8px 12px;
+    }
+
+    .create-action {
+      min-height: 38px;
+      width: 100%;
+      border: 0;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      background: transparent;
+      color: var(--secondary);
+      font-weight: 650;
+      text-align: left;
+    }
+
+    .create-action:hover {
+      background: #ffffff;
+    }
+
+    .space-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      transition: box-shadow 160ms ease, transform 160ms ease;
+      cursor: pointer;
+    }
+
+    .space-card:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .corner {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      max-width: 112px;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px 16px 8px;
+      min-width: 0;
+    }
+
+    .space-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: var(--blue-soft);
+      border: 1px solid #d6e4ff;
+      color: var(--blue);
+    }
+
+    .space-icon.violet {
+      color: var(--violet);
+      background: var(--violet-soft);
+      border-color: #d9d6fe;
+    }
+
+    .space-icon.cyan {
+      color: var(--cyan);
+      background: var(--cyan-soft);
+      border-color: #b9e6fe;
+    }
+
+    .space-icon.amber {
+      color: var(--amber);
+      background: var(--amber-soft);
+      border-color: #fedf89;
+    }
+
+    .card-title-wrap {
+      min-width: 0;
+      padding-right: 56px;
+    }
+
+    .card-title {
+      color: var(--secondary);
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card-meta,
+    .card-mode {
+      margin-top: 3px;
+      color: var(--tertiary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card-meta {
+      font-size: 11px;
+    }
+
+    .card-mode {
+      text-transform: uppercase;
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .card-desc {
+      min-height: 38px;
+      padding: 0 16px;
+      color: var(--tertiary);
+      font-size: 12px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 10px 16px 0;
+      min-height: 34px;
+    }
+
+    .card-footer {
+      margin-top: auto;
+      border-top: 1px solid var(--line-soft);
+      padding: 9px 16px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--tertiary);
+      font-size: 12px;
+    }
+
+    .metrics {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .metric {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-height: 20px;
+      max-width: 100%;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 2px 8px;
+      font-size: 11px;
+      line-height: 16px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .neutral {
+      color: var(--secondary);
+      background: var(--muted);
+      border-color: var(--line-soft);
+    }
+
+    .blue {
+      color: var(--blue);
+      background: var(--blue-soft);
+      border-color: #d6e4ff;
+    }
+
+    .green {
+      color: var(--green);
+      background: var(--green-soft);
+      border-color: #abefc6;
+    }
+
+    .amber {
+      color: var(--amber);
+      background: var(--amber-soft);
+      border-color: #fedf89;
+    }
+
+    .red {
+      color: var(--red);
+      background: var(--red-soft);
+      border-color: #fecdca;
+    }
+
+    .violet {
+      color: var(--violet);
+      background: var(--violet-soft);
+      border-color: #d9d6fe;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel,
+    .node-panel {
+      border-radius: 12px;
+      min-width: 0;
+    }
+
+    .panel-head {
+      padding: 16px;
+      border-bottom: 1px solid var(--line-soft);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      line-height: 22px;
+      font-weight: 750;
+      color: var(--primary);
+    }
+
+    .panel-subtitle {
+      margin-top: 3px;
+      color: var(--tertiary);
+      font-size: 12px;
+    }
+
+    .panel-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .space-head {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+    }
+
+    .space-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .large-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+    }
+
+    .space-name {
+      font-size: 18px;
+      line-height: 26px;
+      font-weight: 750;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .space-badges {
+      margin-top: 7px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      padding: 0 18px 18px;
+    }
+
+    .stat {
+      min-height: 72px;
+      padding: 10px;
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
+      background: var(--soft);
+      min-width: 0;
+    }
+
+    .stat-label {
+      color: var(--tertiary);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .stat-value {
+      margin-top: 5px;
+      font-size: 18px;
+      line-height: 24px;
+      font-weight: 750;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line-soft);
+      overflow-x: auto;
+    }
+
+    .tab-button {
+      min-height: 40px;
+      padding: 0 10px;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab-button.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+    }
+
+    .tab-panel {
+      display: none;
+      padding: 16px;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .two-col,
+    .three-col {
+      display: grid;
+      gap: 10px;
+    }
+
+    .two-col {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .three-col {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .row,
+    .cap-card,
+    .mini,
+    .option-card,
+    .field-card,
+    .picker {
+      border: 1px solid var(--line-soft);
+      background: var(--soft);
+      border-radius: 10px;
+      min-width: 0;
+    }
+
+    .row {
+      min-height: 56px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .row-title {
+      color: var(--secondary);
+      font-weight: 700;
+    }
+
+    .row-desc {
+      margin-top: 2px;
+      color: var(--tertiary);
+      font-size: 12px;
+    }
+
+    .cap-card,
+    .field-card,
+    .option-card {
+      padding: 12px;
+    }
+
+    .strategy-card {
+      appearance: none;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .strategy-card.active {
+      border-color: #b2ccff;
+      background: var(--blue-soft);
+    }
+
+    .cap-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 10px;
+      color: var(--blue);
+      background: var(--blue-soft);
+      border: 1px solid #d6e4ff;
+    }
+
+    .cap-title {
+      color: var(--secondary);
+      font-weight: 750;
+      margin-bottom: 4px;
+    }
+
+    .cap-desc {
+      color: var(--tertiary);
+      font-size: 12px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .table th,
+    .table td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line-soft);
+      color: var(--secondary);
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .table th {
+      color: var(--tertiary);
+      background: var(--soft);
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    .side {
+      position: sticky;
+      top: 82px;
+    }
+
+    .mini-list {
+      display: grid;
+      gap: 8px;
+      padding: 14px;
+    }
+
+    .mini {
+      padding: 10px;
+      min-height: 48px;
+    }
+
+    .mini strong {
+      display: block;
+      color: var(--secondary);
+      margin-bottom: 3px;
+    }
+
+    .mini span {
+      color: var(--tertiary);
+      font-size: 12px;
+    }
+
+    .node-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(430px, 620px);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .node-panel {
+      grid-column: 2;
+      box-shadow: var(--shadow-md);
+      overflow: visible;
+    }
+
+    .node-head {
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .node-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--primary);
+      font-weight: 750;
+    }
+
+    .node-body {
+      padding: 14px 16px 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .node-intro {
+      border: 1px solid #d6e4ff;
+      border-radius: 10px;
+      background: var(--blue-soft);
+      padding: 10px 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .intro-title {
+      color: var(--secondary);
+      font-weight: 750;
+    }
+
+    .intro-copy {
+      color: var(--tertiary);
+      font-size: 12px;
+    }
+
+    .intro-steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--secondary);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .required {
+      color: var(--red);
+    }
+
+    .var-input {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 10px;
+      color: var(--secondary);
+      box-shadow: var(--shadow-xs);
+      min-width: 0;
+    }
+
+    .var-input span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .segmented {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px;
+      border-radius: 10px;
+      background: var(--muted);
+      border: 1px solid var(--line-soft);
+      width: fit-content;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .segment {
+      min-height: 28px;
+      border-radius: 8px;
+      padding: 0 10px;
+    }
+
+    .segment.active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: var(--shadow-xs);
+    }
+
+    .range-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 48px;
+      gap: 10px;
+      align-items: center;
+      color: var(--tertiary);
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--blue);
+    }
+
+    .advanced-settings {
+      border: 1px solid var(--line-soft);
+      border-radius: 12px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .advanced-settings summary {
+      min-height: 46px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--secondary);
+      font-weight: 750;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .advanced-settings summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .advanced-summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .advanced-hint {
+      color: var(--tertiary);
+      font-size: 12px;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .advanced-content {
+      border-top: 1px solid var(--line-soft);
+      padding: 12px;
+      display: grid;
+      gap: 14px;
+      background: var(--soft);
+    }
+
+    .picker-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .picker {
+      min-height: 52px;
+      padding: 8px 10px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .picker-title {
+      color: var(--secondary);
+      font-weight: 700;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .picker-desc {
+      margin-top: 2px;
+      color: var(--tertiary);
+      font-size: 11px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .readiness-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .empty {
+      grid-column: 1 / -1;
+      min-height: 180px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+      display: grid;
+      place-items: center;
+      color: var(--tertiary);
+      text-align: center;
+      padding: 20px;
+    }
+
+    @media (max-width: 1180px) {
+      .grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .layout,
+      .node-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .node-panel {
+        grid-column: 1;
+      }
+
+      .side {
+        position: static;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .topbar {
+        position: static;
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+        padding: 12px 16px;
+      }
+
+      .title,
+      .switcher {
+        grid-column: 1;
+      }
+
+      .switcher {
+        justify-self: stretch;
+      }
+
+      .view {
+        padding: 12px 16px 32px;
+      }
+
+      .toolbar {
+        justify-content: flex-start;
+      }
+
+      .grid,
+      .stats,
+      .three-col,
+      .readiness-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .two-col,
+      .space-head {
+        grid-template-columns: 1fr;
+      }
+
+      .panel-actions {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .grid,
+      .stats,
+      .three-col,
+      .readiness-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .switcher,
+      .segmented {
+        width: 100%;
+      }
+
+      .view-button,
+      .segment {
+        flex: 1 1 auto;
+      }
+
+      .input {
+        width: min(100%, 260px);
+      }
+
+      .table th:nth-child(4),
+      .table td:nth-child(4) {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <main class="main">
+      <header class="topbar">
+        <div class="title">
+          <div class="title-icon"><i class="icon" data-lucide="database-zap"></i></div>
+          <div>
+            <h1>Knowledge</h1>
+            <p class="subtitle">Dify Knowledge 2.0 · 基于 KnowledgeFS 的产品化能力原型</p>
+          </div>
+        </div>
+        <nav class="switcher" aria-label="原型视图">
+          <button class="view-button active" data-view-target="spaces"><i class="icon" data-lucide="layout-grid"></i>Knowledge</button>
+          <button class="view-button" data-view-target="workflow"><i class="icon" data-lucide="workflow"></i>Studio</button>
+          <button class="view-button" data-view-target="readiness"><i class="icon" data-lucide="list-checks"></i>产品化差距</button>
+        </nav>
+      </header>
+
+      <section class="view active" id="view-spaces" aria-label="知识库列表">
+        <div class="toolbar">
+          <label class="checkline"><input type="checkbox" id="includeAll" checked><span>All Knowledge</span></label>
+          <select class="select" id="spaceTag" aria-label="标签过滤">
+            <option value="all">全部能力</option>
+            <option value="documents">文档管理</option>
+            <option value="index">解析索引</option>
+            <option value="semantic">语义增强</option>
+            <option value="workflow">Workflow</option>
+          </select>
+          <div class="search">
+            <i class="icon" data-lucide="search"></i>
+            <input class="input" id="spaceSearch" placeholder="搜索知识库" aria-label="搜索知识库">
+          </div>
+          <button class="button"><i class="icon" data-lucide="key-round"></i>Service API</button>
+          <button class="button"><i class="icon" data-lucide="plug-zap"></i>External API</button>
+        </div>
+        <div class="grid" id="spaceGrid"></div>
+      </section>
+
+      <section class="view" id="view-workbench" aria-label="Knowledge 管理配置">
+        <div class="layout">
+          <section class="panel">
+            <div class="space-head">
+              <div class="space-main">
+                <div class="space-icon large-icon" id="detailIcon"><i class="icon" data-lucide="database"></i></div>
+                <div style="min-width: 0;">
+                  <div class="space-name" id="detailName"></div>
+                  <p class="panel-subtitle" id="detailDesc"></p>
+                  <div class="space-badges" id="detailBadges"></div>
+                </div>
+              </div>
+              <div class="panel-actions">
+                <button class="button primary"><i class="icon" data-lucide="upload"></i>上传文档</button>
+                <button class="button"><i class="icon" data-lucide="refresh-cw"></i>重建索引</button>
+                <button class="button" data-view-target="workflow"><i class="icon" data-lucide="workflow"></i>接入 Workflow</button>
+              </div>
+            </div>
+            <div class="stats" id="spaceStats"></div>
+            <div class="tabs" id="workbenchTabs">
+              <button class="tab-button active" data-tab-target="basic">基础信息</button>
+              <button class="tab-button" data-tab-target="documents">文档管理</button>
+              <button class="tab-button" data-tab-target="indexing">解析与索引</button>
+              <button class="tab-button" data-tab-target="semantic">语义增强</button>
+              <button class="tab-button" data-tab-target="lifecycle">生命周期</button>
+              <button class="tab-button" data-tab-target="quota">配额与预算</button>
+            </div>
+            <div class="tab-panel active" id="tab-basic"></div>
+            <div class="tab-panel" id="tab-documents"></div>
+            <div class="tab-panel" id="tab-indexing"></div>
+            <div class="tab-panel" id="tab-semantic"></div>
+            <div class="tab-panel" id="tab-lifecycle"></div>
+            <div class="tab-panel" id="tab-quota"></div>
+          </section>
+
+          <aside class="panel side">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">KnowledgeFS 能力进入产品</h2>
+                <p class="panel-subtitle">这里只展示应成为 Dify 用户能力的部分。</p>
+              </div>
+            </div>
+            <div class="mini-list" id="productizedPanel"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-workflow" aria-label="Workflow Knowledge 节点">
+        <div class="node-layout">
+          <section class="node-panel">
+            <div class="node-head">
+              <div class="node-title">
+                <div class="title-icon" style="width: 30px; height: 30px; border-radius: 8px;"><i class="icon" data-lucide="database-zap"></i></div>
+                <span>Knowledge Retrieval 2.0</span>
+              </div>
+              <span class="badge green">常用配置</span>
+            </div>
+            <div class="node-body">
+              <div class="node-intro">
+                <div class="intro-title">配置知识检索节点</div>
+                <div class="intro-copy">配置工作流运行时使用的知识库、查询变量和检索策略。返回数量、检索范围和过滤条件可在高级设置中调整。</div>
+                <div class="intro-steps">
+                  <span class="badge blue">Knowledge</span>
+                  <span class="badge blue">Query</span>
+                  <span class="badge blue">Retrieval Strategy</span>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="field-label"><span>Knowledge <span class="required">*</span></span><span class="badge green">必选</span></div>
+                <div class="var-input"><span id="workflowSpaceName"></span><i class="icon" data-lucide="chevron-down"></i></div>
+              </div>
+
+              <div class="field">
+                <div class="field-label"><span>Query <span class="required">*</span></span><span class="badge green">变量或文本</span></div>
+                <div class="var-input"><span>Start / sys.query</span><i class="icon" data-lucide="chevron-down"></i></div>
+              </div>
+
+              <div class="field">
+                <div class="field-label"><span>检索策略</span><span class="badge blue" id="modeBadge">快速回答</span></div>
+                <div class="two-col" id="modeCards"></div>
+              </div>
+
+              <details class="advanced-settings">
+                <summary>
+                  <span class="advanced-summary"><i class="icon" data-lucide="settings-2"></i>高级设置</span>
+                  <span class="advanced-hint">用于配置证据数量、检索范围与过滤条件</span>
+                </summary>
+                <div class="advanced-content">
+                  <div class="two-col">
+                    <div class="field-card">
+                      <div class="field-label"><span>召回候选数</span><span id="topKText">10</span></div>
+                      <div class="cap-desc">适合资料分散、问题容易漏召回的场景。</div>
+                      <div class="range-row"><input id="topKRange" type="range" min="1" max="50" value="10"><span id="topKBox">10</span></div>
+                    </div>
+                    <div class="field-card">
+                      <div class="field-label"><span>返回证据数</span><span id="limitText">5</span></div>
+                      <div class="cap-desc">控制传递给后续 AI 节点的引用材料数量。</div>
+                      <div class="range-row"><input id="limitRange" type="range" min="1" max="20" value="5"><span id="limitBox">5</span></div>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <div class="field-label"><span>输出内容</span><span class="badge violet" id="outputBadge">答案 + 证据</span></div>
+                    <div class="segmented" id="outputMode">
+                      <button class="segment" data-output="answer_only">只要答案</button>
+                      <button class="segment" data-output="evidence_only">只要证据</button>
+                      <button class="segment active" data-output="answer_and_evidence">答案 + 证据</button>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <div class="field-label"><span>检索范围</span><span class="badge neutral">可选</span></div>
+                    <div class="picker-list" id="scopePickers"></div>
+                  </div>
+
+                  <div class="field">
+                    <div class="field-label"><span>Metadata Filter</span><span class="badge neutral" id="filterBadge">0 条</span></div>
+                    <div class="picker-list" id="filterPickers"></div>
+                  </div>
+
+                </div>
+              </details>
+            </div>
+          </section>
+
+        </div>
+      </section>
+
+      <section class="view" id="view-readiness" aria-label="产品化差距">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">从 KnowledgeFS 到 Dify Knowledge 2.0 的产品化差距</h2>
+              <p class="panel-subtitle">只列会影响产品界面落地的 API/配置缺口，不展示内部调试台能力。</p>
+            </div>
+            <button class="button primary"><i class="icon" data-lucide="copy-check"></i>用于评审</button>
+          </div>
+          <div style="padding: 16px;">
+            <div class="readiness-grid" id="readinessGrid"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const spaces = [
+      {
+        id: "product-faq",
+        name: "Product FAQ Hub",
+        slug: "product-faq",
+        desc: "产品、价格、退款、SSO 与账户问题的统一知识入口。",
+        tags: ["documents", "index", "workflow"],
+        icon: "database",
+        tone: "blue",
+        status: "可用",
+        statusTone: "green",
+        docs: 128,
+        parsed: 126,
+        nodes: 1840,
+        sources: 3,
+        apps: 7,
+        workflows: 4,
+        parser: "default-v1",
+        projection: "default-v1",
+        chunker: "paragraph-v2",
+        indexType: "向量 + 全文 + 元数据",
+        embedding: "text-embedding-3-large",
+        defaultMode: "deep",
+        retention: "文档永久 · 问答记录 90 天",
+        capability: "完整产品化"
+      },
+      {
+        id: "docs-crawl",
+        name: "Docs Website Crawl",
+        slug: "docs-web",
+        desc: "官网文档抓取与批量更新，适合长期维护的知识源。",
+        tags: ["documents", "index"],
+        icon: "globe",
+        tone: "amber",
+        status: "待修复",
+        statusTone: "amber",
+        docs: 340,
+        parsed: 285,
+        nodes: 4920,
+        sources: 2,
+        apps: 4,
+        workflows: 6,
+        parser: "html-v1",
+        projection: "default-v1",
+        chunker: "heading-v1",
+        indexType: "全文 + 元数据",
+        embedding: "待补向量投影",
+        defaultMode: "fast",
+        retention: "原始文档 180 天",
+        capability: "上传和文档管理"
+      },
+      {
+        id: "sales-multimodal",
+        name: "Sales Deck Multimodal",
+        slug: "sales-deck",
+        desc: "销售材料、产品截图和演示视频的多模态知识空间。",
+        tags: ["documents", "semantic", "workflow"],
+        icon: "image",
+        tone: "violet",
+        status: "可用",
+        statusTone: "green",
+        docs: 86,
+        parsed: 86,
+        nodes: 1120,
+        sources: 5,
+        apps: 3,
+        workflows: 3,
+        parser: "unstructured-v1",
+        projection: "vision-v1",
+        chunker: "slide-v1",
+        indexType: "向量 + OCR + 元数据",
+        embedding: "text-embedding-3-large",
+        defaultMode: "research",
+        retention: "证据缓存 7 天",
+        capability: "语义增强"
+      },
+      {
+        id: "contract-lite",
+        name: "Contract Clauses Lite",
+        slug: "contract-lite",
+        desc: "历史合同条款的低成本检索空间，适合批量流程使用。",
+        tags: ["workflow", "index"],
+        icon: "file-text",
+        tone: "cyan",
+        status: "部分可用",
+        statusTone: "amber",
+        docs: 74,
+        parsed: 58,
+        nodes: 640,
+        sources: 1,
+        apps: 0,
+        workflows: 2,
+        parser: "default-v1",
+        projection: "keyword-v1",
+        chunker: "paragraph-v1",
+        indexType: "全文 + 关键词",
+        embedding: "无向量投影",
+        defaultMode: "fast",
+        retention: "解析产物保留 3 版",
+        capability: "Workflow 运行时"
+      }
+    ];
+
+    const workflowModes = {
+      fast: {
+        title: "快速回答",
+        desc: "适合 FAQ、客服分流、表单校验这类高频流程，优先保证响应速度。",
+        plan: "高频场景默认推荐"
+      },
+      deep: {
+        title: "更稳答案",
+        desc: "适合价格、权限、政策等高准确性场景，增加证据覆盖后返回。",
+        plan: "准确性优先"
+      },
+      research: {
+        title: "深度研究",
+        desc: "适合报告、调研、复杂资料问答，跨文档和结构化内容检索证据。",
+        plan: "复杂问题"
+      },
+      auto: {
+        title: "智能选择",
+        desc: "按问题复杂度自动选择检索策略。",
+        plan: "自动策略"
+      }
+    };
+
+    const modeLabels = {
+      fast: "快速回答",
+      deep: "更稳答案",
+      research: "深度研究",
+      auto: "智能选择"
+    };
+
+    const outputLabels = {
+      answer_only: "只要答案",
+      evidence_only: "只要证据",
+      answer_and_evidence: "答案 + 证据"
+    };
+
+    const state = {
+      view: "spaces",
+      selectedSpaceId: "product-faq",
+      tag: "all",
+      search: "",
+      includeAll: true,
+      tab: "basic",
+      mode: "fast",
+      topK: 10,
+      limit: 5,
+      output: "answer_and_evidence",
+      scopes: {
+        documents: false,
+        entities: false
+      },
+      filters: {
+        tags: false,
+        documentTypes: false,
+        languages: false
+      }
+    };
+
+    const readiness = [
+      ["Query API", "开放 topK、limit", "当前为服务端固定值。产品需要让 Workflow 节点覆盖召回数和返回条数。", "需新增"],
+      ["Query API", "开放 auto mode", "让复杂问题自动选择 fast/deep/research，降低节点配置成本。", "需新增"],
+      ["Query API", "开放 filters", "tags、documentTypes、languages 应成为 Workflow 高级过滤项。", "需新增"],
+      ["Settings API", "PATCH 解析与索引设置", "parserPolicyVersion、projectionSetVersion、chunkerVersion 需要可编辑的产品 API。", "需新增"],
+      ["Settings API", "默认检索策略", "Knowledge Space 可设置默认 mode、topK、limit，Workflow 可覆盖。", "需新增"],
+      ["Retention API", "知识库级保留策略", "已有租户级和知识库级策略，应进入设置页。", "可直接做 UI"],
+      ["Documents API", "上传、批量上传、列表、详情", "文档管理已经具备产品化基础，可直接进入 Knowledge 页。", "可直接做 UI"],
+      ["Semantic API", "实体抽取与社区摘要", "作为高级能力放在语义增强 tab，不进入创建主流程。", "高级开关"],
+      ["Return Contract", "outputMode", "answer_only、evidence_only、answer_and_evidence 需要成为 Workflow 输出配置。", "需定义"]
+    ];
+
+    function icon(name) {
+      return `<i class="icon" data-lucide="${name}"></i>`;
+    }
+
+    function badge(text, tone = "neutral") {
+      return `<span class="badge ${tone}">${text}</span>`;
+    }
+
+    function spaceById(id) {
+      return spaces.find(space => space.id === id) || spaces[0];
+    }
+
+    function refreshIcons() {
+      if (window.lucide)
+        window.lucide.createIcons();
+    }
+
+    function setView(view) {
+      state.view = view;
+      document.querySelectorAll(".view").forEach(item => item.classList.remove("active"));
+      document.querySelector(`#view-${view}`).classList.add("active");
+      document.querySelectorAll(".view-button[data-view-target]").forEach(button => {
+        button.classList.toggle("active", button.dataset.viewTarget === view);
+      });
+      if (view === "workbench")
+        renderWorkbench();
+      if (view === "workflow")
+        renderWorkflow();
+      if (view === "readiness")
+        renderReadiness();
+      refreshIcons();
+    }
+
+    function renderSpaces() {
+      const query = state.search.trim().toLowerCase();
+      const filtered = spaces.filter(space => {
+        const tagMatch = state.tag === "all" || space.tags.includes(state.tag);
+        const queryMatch = !query || `${space.name} ${space.desc} ${space.capability}`.toLowerCase().includes(query);
+        const visibilityMatch = state.includeAll || space.status !== "部分可用";
+        return tagMatch && queryMatch && visibilityMatch;
+      });
+
+      const createCard = `
+        <div class="create-card">
+          <div class="create-main">
+            <button class="create-action">${icon("plus")}创建 Knowledge Space</button>
+            <button class="create-action">${icon("upload")}批量导入文档</button>
+          </div>
+          <div class="create-footer">
+            <button class="create-action">${icon("plug-zap")}连接外部来源</button>
+          </div>
+        </div>
+      `;
+
+      const cards = filtered.map(space => `
+        <article class="space-card" data-space-id="${space.id}" tabindex="0">
+          <div class="corner">${badge(space.status, space.statusTone)}</div>
+          <div class="card-head">
+            <div class="space-icon ${space.tone}">${icon(space.icon)}</div>
+            <div class="card-title-wrap">
+              <div class="card-title">${space.name}</div>
+              <div class="card-meta">${space.slug} · ${space.capability}</div>
+              <div class="card-mode">${space.defaultMode} · ${space.indexType}</div>
+            </div>
+          </div>
+          <p class="card-desc">${space.desc}</p>
+          <div class="tags">
+            ${badge(`${space.sources} sources`, "neutral")}
+            ${badge(space.parser, "blue")}
+            ${badge(space.projection, "violet")}
+          </div>
+          <footer class="card-footer">
+            <div class="metrics">
+              <span class="metric">${icon("file-text")}${space.parsed}/${space.docs}</span>
+              <span class="metric">${icon("network")}${space.nodes}</span>
+              <span class="metric">${icon("workflow")}${space.workflows}</span>
+            </div>
+            <span>${space.defaultMode}</span>
+          </footer>
+        </article>
+      `).join("");
+
+      document.querySelector("#spaceGrid").innerHTML = createCard + (cards || `<div class="empty"><div><strong>没有匹配的知识库</strong><br><span>调整标签、搜索词或 All Knowledge 过滤条件。</span></div></div>`);
+      document.querySelectorAll(".space-card").forEach(card => {
+        card.addEventListener("click", () => {
+          state.selectedSpaceId = card.dataset.spaceId;
+          setView("workbench");
+        });
+        card.addEventListener("keydown", event => {
+          if (event.key === "Enter") {
+            state.selectedSpaceId = card.dataset.spaceId;
+            setView("workbench");
+          }
+        });
+      });
+      refreshIcons();
+    }
+
+    function renderWorkbench() {
+      const space = spaceById(state.selectedSpaceId);
+      document.querySelector("#detailIcon").innerHTML = icon(space.icon);
+      document.querySelector("#detailName").textContent = space.name;
+      document.querySelector("#detailDesc").textContent = space.desc;
+      document.querySelector("#detailBadges").innerHTML = [
+        badge(`slug: ${space.slug}`, "neutral"),
+        badge(space.status, space.statusTone),
+        badge(space.defaultMode, "blue"),
+        badge(space.capability, "violet")
+      ].join("");
+      document.querySelector("#spaceStats").innerHTML = `
+        <div class="stat"><div class="stat-label">文档可用</div><div class="stat-value">${space.parsed}/${space.docs}</div></div>
+        <div class="stat"><div class="stat-label">节点数量</div><div class="stat-value">${space.nodes}</div></div>
+        <div class="stat"><div class="stat-label">默认检索</div><div class="stat-value">${space.defaultMode}</div></div>
+        <div class="stat"><div class="stat-label">Workflow</div><div class="stat-value">${space.workflows}</div></div>
+      `;
+      renderTabs(space);
+      renderProductizedPanel(space);
+      refreshIcons();
+    }
+
+    function renderTabs(space) {
+      document.querySelector("#tab-basic").innerHTML = `
+        <div class="two-col">
+          <div class="row"><div><div class="row-title">Name</div><div class="row-desc">${space.name}</div></div>${badge("可编辑", "green")}</div>
+          <div class="row"><div><div class="row-title">Slug</div><div class="row-desc">${space.slug}</div></div>${badge("唯一标识", "blue")}</div>
+          <div class="row"><div><div class="row-title">Description</div><div class="row-desc">${space.desc}</div></div>${badge("可编辑", "green")}</div>
+          <div class="row"><div><div class="row-title">默认检索策略</div><div class="row-desc">mode ${space.defaultMode} · topK 10 · limit 5</div></div>${badge("可被 Workflow 覆盖", "violet")}</div>
+        </div>
+      `;
+      document.querySelector("#tab-documents").innerHTML = `
+        <div class="stack">
+          <div class="panel-actions" style="justify-content: flex-start;">
+            <button class="button primary">${icon("upload")}单文件上传</button>
+            <button class="button">${icon("files")}批量上传</button>
+            <button class="button">${icon("refresh-cw")}重新索引</button>
+            <button class="button">${icon("trash-2")}批量删除</button>
+          </div>
+          <table class="table">
+            <thead><tr><th>文档</th><th>解析状态</th><th>分段</th><th>来源</th><th>质量提示</th></tr></thead>
+            <tbody>
+              <tr><td>${space.slug}/overview.md</td><td>${badge("parsed", "green")}</td><td>42 nodes</td><td>upload_file</td><td>无风险</td></tr>
+              <tr><td>${space.slug}/pricing.pdf</td><td>${badge(space.status === "待修复" ? "failed" : "parsed", space.status === "待修复" ? "amber" : "green")}</td><td>68 nodes</td><td>bulk_upload</td><td>${space.status === "待修复" ? "需重新抓取" : "表格已识别"}</td></tr>
+              <tr><td>${space.slug}/source-map.json</td><td>${badge("prepared", "blue")}</td><td>sourceId</td><td>external_source</td><td>等待发布</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+      document.querySelector("#tab-indexing").innerHTML = `
+        <div class="two-col">
+          <div class="row"><div><div class="row-title">解析策略</div><div class="row-desc">parserPolicyVersion: ${space.parser}</div></div>${badge("Settings API", "blue")}</div>
+          <div class="row"><div><div class="row-title">分段策略</div><div class="row-desc">chunkerVersion: ${space.chunker}</div></div>${badge("可产品化", "green")}</div>
+          <div class="row"><div><div class="row-title">索引投影</div><div class="row-desc">projectionSetVersion: ${space.projection}</div></div>${badge("需可编辑", "amber")}</div>
+          <div class="row"><div><div class="row-title">Embedding</div><div class="row-desc">${space.embedding}</div></div>${badge("知识库级", "violet")}</div>
+          <div class="row"><div><div class="row-title">索引类型</div><div class="row-desc">${space.indexType}</div></div>${badge("向量/全文/混合", "blue")}</div>
+          <div class="row"><div><div class="row-title">默认返回</div><div class="row-desc">topK 10 · limit 5 · output both</div></div>${badge("默认值", "neutral")}</div>
+        </div>
+      `;
+      document.querySelector("#tab-semantic").innerHTML = `
+        <div class="three-col">
+          <div class="cap-card"><div class="cap-icon">${icon("tags")}</div><div class="cap-title">按主题组织</div><div class="cap-desc">把文档节点物化成 topic 视图，帮助用户按业务主题管理知识。</div><br>${badge("高级开关", "violet")}</div>
+          <div class="cap-card"><div class="cap-icon">${icon("network")}</div><div class="cap-title">实体抽取</div><div class="cap-desc">从文档中抽取产品、客户、功能、地区等实体，供 Workflow 限定范围。</div><br>${badge("依赖模型", "amber")}</div>
+          <div class="cap-card"><div class="cap-icon">${icon("blocks")}</div><div class="cap-title">社区摘要</div><div class="cap-desc">对相关知识簇生成摘要，服务 research mode 的扩展路径。</div><br>${badge("可选能力", "blue")}</div>
+        </div>
+      `;
+      document.querySelector("#tab-lifecycle").innerHTML = `
+        <div class="two-col">
+          <div class="row"><div><div class="row-title">解析产物版本</div><div class="row-desc">保留最近 3 版，支持重建索引后回退。</div></div>${badge("3", "blue")}</div>
+          <div class="row"><div><div class="row-title">原始文档保留</div><div class="row-desc">${space.retention}</div></div>${badge("知识库级", "green")}</div>
+          <div class="row"><div><div class="row-title">问答记录保留</div><div class="row-desc">默认 90 天，用于引用历史和问题复盘。</div></div>${badge("90 天", "neutral")}</div>
+          <div class="row"><div><div class="row-title">证据缓存</div><div class="row-desc">默认 7 天，降低重复查询成本。</div></div>${badge("7 天", "neutral")}</div>
+          <div class="row"><div><div class="row-title">非活跃索引</div><div class="row-desc">默认 30 天，用于安全清理旧版本。</div></div>${badge("30 天", "amber")}</div>
+          <div class="row"><div><div class="row-title">会话超时</div><div class="row-desc">sessionInactivityMinutes: 30</div></div>${badge("30 分钟", "neutral")}</div>
+        </div>
+      `;
+      document.querySelector("#tab-quota").innerHTML = `
+        <div class="two-col">
+          <div class="row"><div><div class="row-title">文档容量</div><div class="row-desc">企业版可限制每个 Knowledge Space 的文档数和大小。</div></div>${badge("企业版", "violet")}</div>
+          <div class="row"><div><div class="row-title">节点数量</div><div class="row-desc">按 nodeCount 控制索引规模和成本。</div></div>${badge(`${space.nodes}`, "blue")}</div>
+          <div class="row"><div><div class="row-title">Provider Budget</div><div class="row-desc">LLM、Embedding、Rerank 可设置日预算。</div></div>${badge("预算", "amber")}</div>
+          <div class="row"><div><div class="row-title">默认降级</div><div class="row-desc">向量不可用时允许全文检索兜底，由知识库设置统一管理。</div></div>${badge("策略", "green")}</div>
+        </div>
+      `;
+    }
+
+    function renderProductizedPanel(space) {
+      document.querySelector("#productizedPanel").innerHTML = `
+        <div class="mini"><strong>产品维度 2</strong><span>Knowledge 管理：建库、上传、解析、索引、语义增强、保留策略。</span></div>
+        <div class="mini"><strong>产品维度 1</strong><span>Workflow 覆盖：query、mode、topK、limit、范围过滤、输出模式。</span></div>
+        <div class="mini"><strong>当前空间</strong><span>${space.parser} · ${space.projection} · ${space.defaultMode}</span></div>
+        <div class="mini"><strong>产品规则</strong><span>Embedding、分段、索引策略属于知识库；检索深度与返回内容属于 Workflow。</span></div>
+      `;
+    }
+
+    function renderWorkflow() {
+      const space = spaceById(state.selectedSpaceId);
+      document.querySelector("#workflowSpaceName").textContent = space.name;
+      document.querySelector("#modeBadge").textContent = modeLabels[state.mode];
+      document.querySelector("#outputBadge").textContent = outputLabels[state.output];
+      document.querySelector("#topKText").textContent = state.topK;
+      document.querySelector("#topKBox").textContent = state.topK;
+      document.querySelector("#limitText").textContent = state.limit;
+      document.querySelector("#limitBox").textContent = state.limit;
+      document.querySelector("#topKRange").value = state.topK;
+      document.querySelector("#limitRange").value = state.limit;
+      document.querySelectorAll("#outputMode .segment").forEach(button => button.classList.toggle("active", button.dataset.output === state.output));
+      document.querySelector("#modeCards").innerHTML = Object.entries(workflowModes).map(([key, value]) => `
+        <button type="button" class="option-card strategy-card ${state.mode === key ? "active" : ""}" data-mode-card="${key}">
+          <div class="cap-title">${value.title}</div>
+          <div class="cap-desc">${value.desc}</div>
+          <br>${badge(value.plan, state.mode === key ? "blue" : "neutral")}
+        </button>
+      `).join("");
+      document.querySelector("#scopePickers").innerHTML = [
+        ["documents", "指定文档", "仅在选定文档中检索，适用于合同包、投标资料或单次上传文件集。"],
+        ["entities", "指定实体", "仅在选定实体上下文中检索，适用于客户、产品、地区或项目场景。"]
+      ].map(item => `
+        <label class="picker">
+          <input type="checkbox" data-scope="${item[0]}" ${state.scopes[item[0]] ? "checked" : ""}>
+          <div><div class="picker-title">${item[1]}</div><div class="picker-desc">${item[2]}</div></div>
+          ${badge(state.scopes[item[0]] ? "已启用" : "未启用", state.scopes[item[0]] ? "green" : "neutral")}
+        </label>
+      `).join("");
+      document.querySelector("#filterPickers").innerHTML = [
+        ["tags", "Tags", "按业务标签限定检索范围，例如 Product、Support、Policy。"],
+        ["documentTypes", "Document Types", "按文档类型限定检索范围，例如 PDF、网页、Markdown 或表格。"],
+        ["languages", "Languages", "按语言限定检索范围，适用于多语言知识库。"]
+      ].map(item => `
+        <label class="picker">
+          <input type="checkbox" data-filter="${item[0]}" ${state.filters[item[0]] ? "checked" : ""}>
+          <div><div class="picker-title">${item[1]}</div><div class="picker-desc">${item[2]}</div></div>
+          ${badge(state.filters[item[0]] ? "已启用" : "未启用", state.filters[item[0]] ? "green" : "neutral")}
+        </label>
+      `).join("");
+      document.querySelector("#filterBadge").textContent = `${Object.values(state.filters).filter(Boolean).length} 条`;
+      bindDynamicWorkflowInputs();
+      bindStrategyCards();
+      refreshIcons();
+    }
+
+    function bindStrategyCards() {
+      document.querySelectorAll("[data-mode-card]").forEach(button => {
+        button.addEventListener("click", event => {
+          state.mode = event.currentTarget.dataset.modeCard;
+          renderWorkflow();
+        });
+      });
+    }
+
+    function bindDynamicWorkflowInputs() {
+      document.querySelectorAll("[data-scope]").forEach(input => {
+        input.addEventListener("change", event => {
+          state.scopes[event.target.dataset.scope] = event.target.checked;
+          renderWorkflow();
+        });
+      });
+      document.querySelectorAll("[data-filter]").forEach(input => {
+        input.addEventListener("change", event => {
+          state.filters[event.target.dataset.filter] = event.target.checked;
+          renderWorkflow();
+        });
+      });
+    }
+
+    function renderReadiness() {
+      document.querySelector("#readinessGrid").innerHTML = readiness.map(item => `
+        <div class="cap-card">
+          <div class="cap-icon">${icon(item[3] === "可直接做 UI" ? "check-circle" : item[3] === "高级开关" ? "toggle-right" : "wrench")}</div>
+          <div class="cap-title">${item[0]} · ${item[1]}</div>
+          <div class="cap-desc">${item[2]}</div>
+          <br>${badge(item[3], item[3] === "可直接做 UI" ? "green" : item[3] === "高级开关" ? "violet" : "amber")}
+        </div>
+      `).join("");
+      refreshIcons();
+    }
+
+    function bindEvents() {
+      document.querySelectorAll("[data-view-target]").forEach(button => {
+        button.addEventListener("click", () => setView(button.dataset.viewTarget));
+      });
+      document.querySelector("#includeAll").addEventListener("change", event => {
+        state.includeAll = event.target.checked;
+        renderSpaces();
+      });
+      document.querySelector("#spaceTag").addEventListener("change", event => {
+        state.tag = event.target.value;
+        renderSpaces();
+      });
+      document.querySelector("#spaceSearch").addEventListener("input", event => {
+        state.search = event.target.value;
+        renderSpaces();
+      });
+      document.querySelector("#workbenchTabs").addEventListener("click", event => {
+        const target = event.target.closest("[data-tab-target]");
+        if (!target)
+          return;
+        state.tab = target.dataset.tabTarget;
+        document.querySelectorAll(".tab-button").forEach(button => button.classList.toggle("active", button.dataset.tabTarget === state.tab));
+        document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.toggle("active", panel.id === `tab-${state.tab}`));
+      });
+      document.querySelector("#outputMode").addEventListener("click", event => {
+        const target = event.target.closest("[data-output]");
+        if (!target)
+          return;
+        state.output = target.dataset.output;
+        renderWorkflow();
+      });
+      document.querySelector("#topKRange").addEventListener("input", event => {
+        state.topK = Number(event.target.value);
+        document.querySelector("#topKText").textContent = state.topK;
+        document.querySelector("#topKBox").textContent = state.topK;
+      });
+      document.querySelector("#limitRange").addEventListener("input", event => {
+        state.limit = Number(event.target.value);
+        document.querySelector("#limitText").textContent = state.limit;
+        document.querySelector("#limitBox").textContent = state.limit;
+      });
+    }
+
+    bindEvents();
+    renderSpaces();
+    renderWorkbench();
+    renderWorkflow();
+    renderReadiness();
+    refreshIcons();
+    window.addEventListener("load", refreshIcons);
+  </script>
+</body>
+</html>
