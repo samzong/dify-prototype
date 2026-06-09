@@ -1,4 +1,7 @@
 verifyDepsBeforeRun: false
 
+minimumReleaseAgeExclude:
+  - prooflet
+
 packages:
   - apps/*
