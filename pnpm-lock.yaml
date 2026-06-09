@@ -73,8 +73,8 @@ importers:
         specifier: 2.1.1
         version: 2.1.1
       prooflet:
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.1.1
+        version: 0.1.1
       react:
         specifier: 19.2.7
         version: 19.2.7
@@ -571,8 +571,8 @@ packages:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
 
-  prooflet@0.1.0:
-    resolution: {integrity: sha512-AqMRuT8AfdstzaCGHrC8BuIdsC8owxllQTXQbjjZEDWpUZxI3DHUQhcH2U3BRZamfm+nb5ej0Aq2AHBsG6YgYA==}
+  prooflet@0.1.1:
+    resolution: {integrity: sha512-Tp0obLIE5oDbiUK63MMwbW4WY07qLkPbVmrhj23PAfFczoDQcT5zBF372RIxmPxJ/lNutebIkX8/shXb3ccerQ==}
 
   react-dom@19.2.7:
     resolution: {integrity: sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==}
@@ -1033,7 +1033,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  prooflet@0.1.0: {}
+  prooflet@0.1.1: {}
 
   react-dom@19.2.7(react@19.2.7):
     dependencies:
