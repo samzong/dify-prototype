@@ -1,5 +1,4 @@
 import { Button } from '@langgenius/dify-ui/button'
-import { Checkbox } from '@langgenius/dify-ui/checkbox'
 import { cn } from '@langgenius/dify-ui/cn'
 import { FieldControl, FieldLabel, FieldRoot } from '@langgenius/dify-ui/field'
 import { Form } from '@langgenius/dify-ui/form'
@@ -7,18 +6,13 @@ import { Input } from '@langgenius/dify-ui/input'
 import { ToastHost, toast } from '@langgenius/dify-ui/toast'
 import { TooltipProvider } from '@langgenius/dify-ui/tooltip'
 import {
-  RiAddLine,
   RiArrowDownSLine,
-  RiBookOpenLine,
   RiBuilding4Line,
   RiCloseCircleFill,
   RiDoorLockLine,
   RiEyeLine,
   RiEyeOffLine,
-  RiFileTextFill,
-  RiFunctionAddLine,
   RiGlobalLine,
-  RiLogoutBoxRLine,
   RiRobot2Fill,
   RiRobot2Line,
   RiSearchLine,
@@ -26,7 +20,8 @@ import {
   RiTShirt2Line,
 } from '@remixicon/react'
 import { useEffect, useMemo, useState } from 'react'
-import { prototypeApps, prototypeDatasets, type AppMode, type PrototypeApp, type PrototypeDataset } from './prototype-data'
+import { Knowledge2Section, KnowledgeTopNav } from './Knowledge2Workbench'
+import { prototypeApps, type AppMode, type PrototypeApp } from './prototype-data'
 import { WorkflowOrchestrate } from './WorkflowOrchestrate'
 
 type MainSection = 'studio' | 'knowledge' | 'workflow'
@@ -244,6 +239,7 @@ function AppsDefaultPage({
   onSignOut: () => void
 }) {
   const [activeSection, setActiveSection] = useState<MainSection>('studio')
+  const [knowledgeScreen, setKnowledgeScreen] = useState<'list' | string>('list')
   const [keywords, setKeywords] = useState('')
   const filteredApps = useMemo(() => {
     const query = keywords.trim().toLowerCase()
@@ -261,7 +257,14 @@ function AppsDefaultPage({
       <Header
         theme={theme}
         activeSection={activeSection}
-        onSectionChange={setActiveSection}
+        knowledgeScreen={knowledgeScreen}
+        onSectionChange={(section) => {
+          setActiveSection(section)
+          if (section === 'knowledge')
+            setKnowledgeScreen('list')
+        }}
+        onGoToKnowledgeList={() => setKnowledgeScreen('list')}
+        onSelectKnowledge={setKnowledgeScreen}
         onThemeChange={onThemeChange}
         onSignOut={onSignOut}
       />
@@ -289,7 +292,12 @@ function AppsDefaultPage({
               </div>
             </main>
           )
-        : <KnowledgePage />}
+        : (
+            <Knowledge2Section
+              screen={knowledgeScreen}
+              onOpenDetail={setKnowledgeScreen}
+            />
+          )}
     </div>
   )
 }
@@ -297,13 +305,19 @@ function AppsDefaultPage({
 function Header({
   theme,
   activeSection,
+  knowledgeScreen,
   onSectionChange,
+  onGoToKnowledgeList,
+  onSelectKnowledge,
   onThemeChange,
   onSignOut,
 }: {
   theme: 'light' | 'dark'
   activeSection: MainSection
+  knowledgeScreen: 'list' | string
   onSectionChange: (section: MainSection) => void
+  onGoToKnowledgeList: () => void
+  onSelectKnowledge: (id: string) => void
   onThemeChange: (theme: 'light' | 'dark') => void
   onSignOut: () => void
 }) {
@@ -330,12 +344,12 @@ function Header({
             active={activeSection === 'studio'}
             onClick={() => onSectionChange('studio')}
           />
-          <TopNav
-            icon={<span className="i-ri-database-2-line size-4" />}
-            activeIcon={<span className="i-ri-database-2-fill size-4" />}
-            text="Knowledge"
+          <KnowledgeTopNav
             active={activeSection === 'knowledge'}
-            onClick={() => onSectionChange('knowledge')}
+            screen={knowledgeScreen}
+            onActivate={() => onSectionChange('knowledge')}
+            onGoToList={onGoToKnowledgeList}
+            onSelectKnowledge={onSelectKnowledge}
           />
           <TopNav icon={<span className="i-ri-hammer-line size-4" />} text="Tools" />
         </div>
@@ -415,149 +429,6 @@ function FilterChip({ iconClassName, label }: { iconClassName: string; label: st
       <span className="px-1 text-text-tertiary">{label}</span>
       <span aria-hidden className="i-ri-arrow-down-s-line h-4 w-4 shrink-0 text-text-tertiary" />
     </button>
-  )
-}
-
-function KnowledgePage() {
-  const [keywords, setKeywords] = useState('')
-  const [includeAll, setIncludeAll] = useState(false)
-  const filteredDatasets = useMemo(() => {
-    const query = keywords.trim().toLowerCase()
-    if (!query)
-      return prototypeDatasets
-
-    return prototypeDatasets.filter(dataset => `${dataset.name} ${dataset.description} ${dataset.tags.join(' ')}`.toLowerCase().includes(query))
-  }, [keywords])
-
-  return (
-    <main className="relative flex h-0 shrink-0 grow flex-col overflow-y-auto bg-background-body">
-      <div className="sticky top-0 z-10 flex items-center justify-end gap-x-1 bg-background-body px-12 pt-4 pb-2">
-        <label className="mr-2 flex h-8 cursor-pointer items-center gap-2 rounded-lg px-2 text-text-secondary hover:bg-state-base-hover">
-          <Checkbox
-            checked={includeAll}
-            onCheckedChange={setIncludeAll}
-            aria-label="All Knowledge"
-          />
-          <span className="system-md-regular">All Knowledge</span>
-        </label>
-        <FilterChip iconClassName="i-ri-price-tag-3-line" label="Tags" />
-        <SearchInput value={keywords} onChange={setKeywords} className="w-[200px]" />
-        <Button className="gap-0.5 shadow-xs">
-          <span className="i-custom-vender-solid-development-api-connection-mod size-4 text-components-button-secondary-text" />
-          <span className="flex items-center justify-center gap-1 px-0.5 system-sm-medium text-components-button-secondary-text">External Knowledge API</span>
-        </Button>
-      </div>
-      <nav className="grid grow grid-cols-1 content-start gap-3 px-12 pt-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        <NewKnowledgeCard />
-        {filteredDatasets.map(dataset => <KnowledgeCard key={dataset.id} dataset={dataset} />)}
-      </nav>
-      <footer className="shrink-0 px-12 py-6">
-        <h3 className="text-gradient text-xl/tight font-semibold">Did you know?</h3>
-        <p className="mt-1 text-sm/tight font-normal text-text-secondary">
-          The Knowledge can be integrated into the Dify application
-          {' '}
-          <span className="inline-flex items-center gap-1 text-text-accent">as a context</span>
-          ,
-          <br />
-          or it
-          {' '}
-          <span className="inline-flex items-center gap-1 text-text-accent">can be published</span>
-          {' '}
-          as an independent service.
-        </p>
-      </footer>
-    </main>
-  )
-}
-
-function NewKnowledgeCard() {
-  return (
-    <div className="flex h-[190px] flex-col gap-y-0.5 rounded-xl bg-background-default-dimmed">
-      <div className="flex grow flex-col items-center justify-center p-2">
-        <KnowledgeCreateOption Icon={RiAddLine} text="Create Knowledge" />
-        <KnowledgeCreateOption Icon={RiFunctionAddLine} text="Create from Knowledge Pipeline" />
-      </div>
-      <div className="border-t-[0.5px] border-divider-subtle p-2">
-        <KnowledgeCreateOption Icon={() => <span className="i-custom-vender-solid-development-api-connection-mod size-4 shrink-0" />} text="Connect to an External Knowledge Base" />
-      </div>
-    </div>
-  )
-}
-
-function KnowledgeCreateOption({ Icon, text }: { Icon: React.ComponentType<{ className?: string }>; text: string }) {
-  return (
-    <button type="button" className="flex w-full items-center gap-x-2 rounded-lg bg-transparent px-4 py-2 text-text-tertiary shadow-shadow-shadow-3 hover:bg-background-default-dodge hover:text-text-secondary hover:shadow-xs">
-      <Icon className="size-4 shrink-0" />
-      <span className="grow text-left system-sm-medium">{text}</span>
-    </button>
-  )
-}
-
-function KnowledgeCard({ dataset }: { dataset: PrototypeDataset }) {
-  return (
-    <div className="group relative col-span-1 flex h-47.5 cursor-pointer flex-col rounded-xl border-[0.5px] border-solid border-components-card-border bg-components-card-bg shadow-xs shadow-shadow-shadow-3 transition-all duration-200 ease-in-out hover:shadow-md hover:shadow-shadow-shadow-5">
-      {dataset.cornerLabel && (
-        <div className="absolute top-0 right-0 z-5 rounded-tr-xl rounded-bl-lg bg-components-badge-bg-blue-solid px-2 py-0.5 system-2xs-medium-uppercase text-text-primary-on-surface">
-          {dataset.cornerLabel}
-        </div>
-      )}
-      <div className="flex items-center gap-x-3 px-4 pt-4 pb-2">
-        <div className="relative shrink-0">
-          <span className="relative flex size-10 shrink-0 grow-0 items-center justify-center overflow-hidden rounded-[10px] border-[0.5px] border-divider-regular text-[24px] leading-none" style={{ background: dataset.iconBackground }}>
-            {dataset.icon}
-          </span>
-          <div className="absolute -right-1 -bottom-1 z-5 flex size-4 items-center justify-center rounded bg-components-avatar-shape-fill-stop-100 shadow-xs">
-            <RiBookOpenLine className="size-3 text-components-icon-bg-orange-solid" />
-          </div>
-        </div>
-        <div className="flex grow flex-col gap-y-1 overflow-hidden py-px">
-          <div className="truncate system-md-semibold text-text-secondary" title={dataset.name}>
-            {dataset.name}
-          </div>
-          <div className="flex items-center gap-1 text-[10px] leading-[18px] font-medium text-text-tertiary">
-            <div className="truncate" title={dataset.authorName}>{dataset.authorName}</div>
-            <div>·</div>
-            <div className="truncate" title={dataset.editedAt}>{dataset.editedAt}</div>
-          </div>
-          <div className="flex items-center gap-x-3 system-2xs-medium-uppercase text-text-tertiary">
-            <span className="max-w-full min-w-0 truncate" title={dataset.docForm}>{dataset.docForm}</span>
-            {!!dataset.indexingText && <span className="max-w-full min-w-0 truncate" title={dataset.indexingText}>{dataset.indexingText}</span>}
-          </div>
-        </div>
-      </div>
-      <div className="line-clamp-2 h-10 px-4 py-1 system-xs-regular text-text-tertiary" title={dataset.description}>
-        {dataset.description}
-      </div>
-      <div className="group/tag-area w-full px-3">
-        <div className="relative flex w-full gap-1 overflow-hidden py-1">
-          {dataset.tags.map(tag => (
-            <span key={tag} className="inline-flex h-6 max-w-[112px] shrink-0 items-center rounded-md border border-divider-subtle bg-components-badge-bg-gray-soft px-2 system-2xs-medium-uppercase text-text-tertiary">
-              {tag}
-            </span>
-          ))}
-          <div className="pointer-events-none absolute top-0 right-0 h-full w-20 bg-tag-selector-mask-bg" />
-        </div>
-      </div>
-      <div className="flex items-center gap-x-3 px-4 pt-2 pb-3 text-text-tertiary">
-        <div className="flex items-center gap-x-1">
-          <RiFileTextFill className="size-3 text-text-quaternary" />
-          <span className="system-xs-medium">
-            {dataset.availableDocumentCount < dataset.documentCount ? `${dataset.availableDocumentCount} / ${dataset.documentCount}` : dataset.documentCount}
-          </span>
-        </div>
-        {dataset.provider !== 'external' && (
-          <div className="flex items-center gap-x-1">
-            <RiRobot2Fill className="size-3 text-text-quaternary" />
-            <span className="system-xs-medium">{dataset.appCount}</span>
-          </div>
-        )}
-        <span className="system-xs-regular text-divider-deep">/</span>
-        <span className="system-xs-regular">{dataset.updatedAt}</span>
-      </div>
-      <button type="button" aria-label="Dataset operations" className="pointer-events-none invisible absolute top-2 right-2 z-5 inline-flex size-9 cursor-pointer items-center justify-center rounded-[10px] border-[0.5px] border-components-actionbar-border bg-components-button-secondary-bg p-0 shadow-lg ring-2 shadow-shadow-shadow-5 ring-components-button-secondary-bg ring-inset transition-colors hover:border-components-actionbar-border hover:bg-state-base-hover group-hover:pointer-events-auto group-hover:visible">
-        <span className="i-ri-more-fill size-5 text-text-tertiary" />
-      </button>
-    </div>
   )
 }
 
