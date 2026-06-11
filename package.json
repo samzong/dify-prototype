@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "pnpm -C apps/prototype dev",
     "build": "pnpm -C apps/prototype build",
-    "sync:dify": "node scripts/sync-dify.mjs"
+    "sync:dify": "node scripts/sync-dify.mjs sync",
+    "bump:dify": "node scripts/sync-dify.mjs bump"
   },
   "dependencies": {
     "@base-ui/react": "1.5.0",

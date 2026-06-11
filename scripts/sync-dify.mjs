@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -8,6 +8,13 @@ const upstreamUrl = 'https://github.com/langgenius/dify.git'
 const upstreamBranch = 'main'
 const upstreamRoot = path.join(root, '.dify-upstream')
 const repoDir = path.join(upstreamRoot, 'repo')
+const manifestPath = path.join(root, '.dify-source.json')
+
+const mode = process.argv[2] ?? 'sync'
+if (mode !== 'sync' && mode !== 'bump') {
+  console.error(`Unknown mode: ${mode}. Use "sync" (materialize pinned commit) or "bump" (advance pin to upstream HEAD).`)
+  process.exit(1)
+}
 
 const syncedDirs = [
   ['packages/dify-ui', 'packages/dify-ui'],
@@ -51,6 +58,12 @@ function capture(command, args, options = {}) {
   }).trim()
 }
 
+function readManifest() {
+  if (!existsSync(manifestPath))
+    return null
+  return JSON.parse(readFileSync(manifestPath, 'utf8'))
+}
+
 function ensureParent(target) {
   mkdirSync(path.dirname(target), { recursive: true })
 }
@@ -88,7 +101,7 @@ function copyPublic() {
   }
 }
 
-function syncRepo() {
+function ensureRepo() {
   mkdirSync(upstreamRoot, { recursive: true })
 
   if (!existsSync(repoDir)) {
@@ -97,11 +110,24 @@ function syncRepo() {
   }
 
   run('git', ['-C', repoDir, 'remote', 'set-url', 'origin', upstreamUrl])
-  run('git', ['-C', repoDir, 'fetch', '--depth', '1', 'origin', upstreamBranch])
-  run('git', ['-C', repoDir, 'checkout', '--detach', 'FETCH_HEAD'])
 }
 
-function writeSourceManifest(commit) {
+function checkoutCommit(commit) {
+  const head = capture('git', ['-C', repoDir, 'rev-parse', 'HEAD'])
+  if (head === commit)
+    return
+
+  run('git', ['-C', repoDir, 'fetch', '--depth', '1', 'origin', commit])
+  run('git', ['-C', repoDir, 'checkout', '--detach', commit])
+}
+
+function checkoutUpstreamHead() {
+  run('git', ['-C', repoDir, 'fetch', '--depth', '1', 'origin', upstreamBranch])
+  run('git', ['-C', repoDir, 'checkout', '--detach', 'FETCH_HEAD'])
+  return capture('git', ['-C', repoDir, 'rev-parse', 'HEAD'])
+}
+
+function writeManifest(commit) {
   const manifest = {
     repo: upstreamUrl,
     branch: upstreamBranch,
@@ -113,20 +139,39 @@ function writeSourceManifest(commit) {
     ],
   }
 
-  writeFileSync(
-    path.join(root, '.dify-source.json'),
-    `${JSON.stringify(manifest, null, 2)}\n`,
-  )
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 }
 
-syncRepo()
+function materialize() {
+  for (const [source, target] of syncedDirs)
+    copyPath(source, target)
 
-const commit = capture('git', ['-C', repoDir, 'rev-parse', 'HEAD'])
+  copyPublic()
+}
 
-for (const [source, target] of syncedDirs)
-  copyPath(source, target)
+ensureRepo()
 
-copyPublic()
-writeSourceManifest(commit)
+if (mode === 'bump') {
+  const previous = readManifest()?.commit
+  const commit = checkoutUpstreamHead()
+  materialize()
 
-console.log(`Synced Dify ${commit} from ${upstreamUrl}`)
+  if (commit === previous) {
+    console.log(`Dify pin already at upstream HEAD ${commit}`)
+  }
+  else {
+    writeManifest(commit)
+    console.log(`Bumped Dify pin to ${commit} (${upstreamUrl} ${upstreamBranch})`)
+  }
+}
+else {
+  const manifest = readManifest()
+  if (!manifest?.commit) {
+    console.error('No pinned commit in .dify-source.json. Run "pnpm bump:dify" first.')
+    process.exit(1)
+  }
+
+  checkoutCommit(manifest.commit)
+  materialize()
+  console.log(`Synced Dify ${manifest.commit} from ${upstreamUrl}`)
+}

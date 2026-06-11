@@ -12,17 +12,24 @@ Default upstream:
 
 - `https://github.com/langgenius/dify.git`
 
+Two commands manage the upstream mirror:
+
+- `pnpm sync:dify` materializes the mirror at the commit pinned in `.dify-source.json`. Idempotent, produces no git diff. Run it after a fresh clone or whenever the mirror is missing.
+- `pnpm bump:dify` advances the pin to the upstream `main` HEAD and re-materializes. It produces a one-line pin change in `.dify-source.json`; commit it as `chore: bump dify to <sha>`.
+
 Before creating or updating a Dify prototype screen, run:
 
 ```bash
-pnpm sync:dify
+pnpm bump:dify
 ```
 
-The sync command is the only first-version sync interface. Do not add flags, alternate modes, local-path assumptions, version selectors, or extra workflow options unless the user explicitly asks.
+These two commands are the only sync interface. Do not add flags, alternate modes, local-path assumptions, version selectors, or extra workflow options unless the user explicitly asks.
 
 ## Synced Sources
 
-The sync command fetches Dify into `.dify-upstream/`, then copies approved frontend sources into this repository.
+The sync commands fetch Dify into `.dify-upstream/`, then copy approved frontend sources into this repository.
+
+The mirror directories (`dify-source/`, `packages/dify-ui`, `packages/iconify-collections`, `packages/tsconfig`) are generated artifacts: gitignored, never committed, always reproducible from the pin in `.dify-source.json`. They must stay searchable for agents — the root `.ignore` file re-includes them for ripgrep-based search tools. If a search under `dify-source/` returns nothing, first verify the mirror is materialized (run `pnpm sync:dify`) instead of concluding the source does not exist.
 
 Primary synced sources:
 
@@ -84,7 +91,7 @@ Keep `DESIGN.md` and this file in English because they are repository-tracked ag
 
 When asked to create a screen:
 
-1. Run `pnpm sync:dify`.
+1. Run `pnpm bump:dify`.
 2. Locate the closest real Dify source paths.
 3. Reuse Dify primitives, tokens, icons, and layout structure.
 4. Replace backend/service calls with local fixtures or adapters.
