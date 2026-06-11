@@ -5,11 +5,10 @@ Source-faithful Dify frontend prototype workspace.
 Setup after clone:
 
 ```bash
-pnpm sync:dify
 pnpm install
 ```
 
-`pnpm sync:dify` materializes the Dify frontend mirror (`dify-source/`, synced `packages/*`) at the commit pinned in `.dify-source.json`. The mirror is gitignored and fully reproducible from the pin. Run sync before install: the workspace declares `file:` dependencies on synced packages.
+If the Dify mirror (`dify-source/`, synced `packages/*`) is missing, `.pnpmfile.cjs` materializes it automatically before dependency resolution by running `pnpm sync:dify`. The mirror is gitignored and fully reproducible from the commit pinned in `.dify-source.json`; run `pnpm sync:dify` manually whenever you need to restore it.
 
 To advance the pin to the latest upstream `main`:
 
