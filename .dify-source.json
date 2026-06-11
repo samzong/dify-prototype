@@ -1,8 +1,8 @@
 {
   "repo": "https://github.com/langgenius/dify.git",
   "branch": "main",
-  "commit": "34f3591d4c058cc95d262ac8d58db0a4f8176763",
-  "syncedAt": "2026-06-09T09:08:46.833Z",
+  "commit": "117a25b32a2b683d080d150b7b6f535bd67511a1",
+  "syncedAt": "2026-06-11T03:02:44.718Z",
   "paths": [
     "packages/dify-ui",
     "packages/iconify-collections",
