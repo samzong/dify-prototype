@@ -4,7 +4,7 @@ import { FieldControl, FieldLabel, FieldRoot } from '@langgenius/dify-ui/field'
 import { Form } from '@langgenius/dify-ui/form'
 import { Input } from '@langgenius/dify-ui/input'
 import { ToastHost, toast } from '@langgenius/dify-ui/toast'
-import { TooltipProvider } from '@langgenius/dify-ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@langgenius/dify-ui/tooltip'
 import {
   RiArrowDownSLine,
   RiBuilding4Line,
@@ -12,6 +12,7 @@ import {
   RiDoorLockLine,
   RiEyeLine,
   RiEyeOffLine,
+  RiGithubFill,
   RiGlobalLine,
   RiRobot2Fill,
   RiRobot2Line,
@@ -41,6 +42,8 @@ const appTypeIconClassNames: Record<AppMode, string> = {
   'agent-chat': 'i-ri-robot-3-fill bg-components-icon-bg-violet-solid',
   completion: 'i-ri-file-text-fill bg-components-icon-bg-teal-solid',
 }
+
+const prototypeRepositoryUrl = 'https://github.com/samzong/dify-prototype'
 
 function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
@@ -210,6 +213,7 @@ function SignInHeader({
           <RiArrowDownSLine className="size-4" />
         </button>
         <div className="mx-0 ml-2 h-4 w-px shrink-0 bg-divider-regular" />
+        <PrototypeRepoLink />
         <button
           type="button"
           aria-label="Toggle theme"
@@ -226,6 +230,27 @@ function SignInHeader({
 function Split({ className }: { className?: string }) {
   return (
     <div className={cn('h-px w-[400px] max-w-full bg-[linear-gradient(90deg,rgba(255,255,255,0.01)_0%,rgba(16,24,40,0.08)_50.5%,rgba(255,255,255,0.01)_100%)]', className)} />
+  )
+}
+
+function PrototypeRepoLink({ className }: { className?: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={(
+          <a
+            href={prototypeRepositoryUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Open GitHub repository"
+            className={cn('flex size-8 items-center justify-center rounded-lg text-text-tertiary hover:bg-state-base-hover hover:text-text-secondary', className)}
+          >
+            <RiGithubFill className="size-4" />
+          </a>
+        )}
+      />
+      <TooltipContent>GitHub repository</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -354,6 +379,7 @@ function Header({
           <TopNav icon={<span className="i-ri-hammer-line size-4" />} text="Tools" />
         </div>
         <div className="flex min-w-0 flex-1 items-center justify-end pr-3 pl-2 min-[1280px]:pl-3">
+          <PrototypeRepoLink className="mr-2" />
           <button type="button" className="mr-2 flex size-8 items-center justify-center rounded-lg text-text-tertiary hover:bg-state-base-hover" onClick={() => onThemeChange(theme === 'light' ? 'dark' : 'light')}>
             <RiTShirt2Line className="size-4" />
           </button>
