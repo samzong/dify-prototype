@@ -4,6 +4,12 @@
 
 This project creates source-faithful Dify frontend prototypes. The goal is not "Dify-like" UI. The goal is prototype screens that follow real Dify frontend source for layout, components, tokens, typography, spacing, icons, dialogs, tables, states, and visual behavior.
 
+## Detail Fidelity
+
+Never drop product details just because the prototype is local or mock-backed. If important Dify setup fields, configuration controls, states, limits, provider-specific options, loading states, or step flows are missing, the prototype becomes a decorative shell instead of a useful product artifact.
+
+Be extremely serious about details. Every visible source-backed behavior that affects how a user configures, validates, syncs, processes, or finishes a workflow must be represented in the prototype, or explicitly called out as intentionally out of scope before implementation.
+
 ## Source Of Truth
 
 Do not assume Dify exists on the local machine.

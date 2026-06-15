@@ -1,5 +1,6 @@
 import { Button } from '@langgenius/dify-ui/button'
 import { Checkbox } from '@langgenius/dify-ui/checkbox'
+import { cn } from '@langgenius/dify-ui/cn'
 import { Dialog, DialogCloseButton, DialogContent, DialogTitle } from '@langgenius/dify-ui/dialog'
 import {
   DropdownMenu,
@@ -33,8 +34,10 @@ import {
   documentParserStatusLabels,
   documentSortOptions,
   documentStatusFilterOptions,
+  sourceTypeLabels,
   type Knowledge2Item,
   type KnowledgeDocumentRow,
+  type KnowledgeSourceRow,
 } from './knowledge-2-data'
 import { ActionToast, DetailRow } from './knowledge-2-panel'
 
@@ -51,6 +54,14 @@ type BulkJob = {
   total: number
 }
 
+type AddDocumentMode = 'manual' | 'source'
+
+type SourceAssetOption = {
+  value: string
+  label: string
+  description: string
+}
+
 const bulkJobStageLabels: Record<BulkJob['stage'], string> = {
   queued: 'Queued',
   parsed: 'Parsed',
@@ -59,7 +70,13 @@ const bulkJobStageLabels: Record<BulkJob['stage'], string> = {
   published: 'Published',
 }
 
-export function KnowledgeDocumentsView({ item }: { item: Knowledge2Item }) {
+export function KnowledgeDocumentsView({
+  item,
+  onDocumentsChange,
+}: {
+  item: Knowledge2Item
+  onDocumentsChange?: (documents: KnowledgeDocumentRow[]) => void
+}) {
   const [documents, setDocuments] = useState<KnowledgeDocumentRow[]>(() => item.documents.map(doc => ({ ...doc })))
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<(typeof documentStatusFilterOptions)[number]['value']>('all')
@@ -70,15 +87,17 @@ export function KnowledgeDocumentsView({ item }: { item: Knowledge2Item }) {
   const [renameDoc, setRenameDoc] = useState<KnowledgeDocumentRow | null>(null)
   const [detailDoc, setDetailDoc] = useState<KnowledgeDocumentRow | null>(null)
   const [renameValue, setRenameValue] = useState('')
-  const [addSource, setAddSource] = useState(item.sources[0]?.name ?? '')
+  const [addMode, setAddMode] = useState<AddDocumentMode>('manual')
+  const [addSourceId, setAddSourceId] = useState('')
+  const [addSourceAsset, setAddSourceAsset] = useState('')
   const [addFileName, setAddFileName] = useState('')
   const [bulkJob, setBulkJob] = useState<BulkJob | null>(null)
   const [toast, setToast] = useState('')
 
-  const sourceOptions = useMemo(
-    () => item.sources.filter(source => source.status !== 'Disabled').map(source => ({ value: source.name, label: source.name })),
-    [item.sources],
-  )
+  const availableSources = useMemo(() => item.sources.filter(source => source.status !== 'Disabled'), [item.sources])
+  const sourceOptions = useMemo(() => availableSources.map(source => ({ value: source.id, label: source.name })), [availableSources])
+  const selectedSource = availableSources.find(source => source.id === addSourceId)
+  const sourceAssetOptions = useMemo(() => selectedSource ? buildSourceAssetOptions(selectedSource) : [], [selectedSource])
 
   const filteredDocuments = useMemo(() => {
     const keyword = search.trim().toLowerCase()
@@ -109,12 +128,20 @@ export function KnowledgeDocumentsView({ item }: { item: Knowledge2Item }) {
     window.setTimeout(() => setToast(''), 2200)
   }
 
+  const commitDocuments = (updater: (documents: KnowledgeDocumentRow[]) => KnowledgeDocumentRow[]) => {
+    setDocuments((current) => {
+      const next = updater(current)
+      window.setTimeout(() => onDocumentsChange?.(next), 0)
+      return next
+    })
+  }
+
   const updateDocument = (id: string, patch: Partial<KnowledgeDocumentRow>) => {
-    setDocuments(current => current.map(doc => doc.id === id ? { ...doc, ...patch } : doc))
+    commitDocuments(current => current.map(doc => doc.id === id ? { ...doc, ...patch } : doc))
   }
 
   const removeDocuments = (ids: string[]) => {
-    setDocuments(current => current.filter(doc => !ids.includes(doc.id)))
+    commitDocuments(current => current.filter(doc => !ids.includes(doc.id)))
     setSelectedIds(current => current.filter(id => !ids.includes(id)))
   }
 
@@ -126,21 +153,25 @@ export function KnowledgeDocumentsView({ item }: { item: Knowledge2Item }) {
   }
 
   const handleAddDocument = () => {
-    if (!addFileName.trim() || !addSource)
+    const selectedAsset = sourceAssetOptions.find(option => option.value === addSourceAsset)
+    const documentName = addMode === 'source' ? selectedAsset?.label : addFileName.trim()
+    const documentSource = addMode === 'source' ? selectedSource?.name : 'Manual upload'
+    if (!documentName || !documentSource)
       return
     const next: KnowledgeDocumentRow = {
       id: `${item.id}-doc-${Date.now()}`,
-      name: addFileName.trim(),
-      source: addSource,
+      name: documentName,
+      source: documentSource,
       parserStatus: 'pending',
       version: 'v1',
       indexStatus: 'building',
       evidenceUse: 'Pending',
       updatedAt: 'Just now',
     }
-    setDocuments(current => [next, ...current])
+    commitDocuments(current => [next, ...current])
     setAddOpen(false)
     setAddFileName('')
+    setAddSourceAsset('')
     showToast('Document queued for processing.')
   }
 
@@ -183,6 +214,26 @@ export function KnowledgeDocumentsView({ item }: { item: Knowledge2Item }) {
       return 'Waiting for parser or projection to complete.'
     return 'Included in published projection and evidence tests.'
   }
+
+  const selectAddMode = (mode: AddDocumentMode) => {
+    setAddMode(mode)
+    if (mode === 'source' && availableSources[0]) {
+      const source = availableSources.find(entry => entry.id === addSourceId) ?? availableSources[0]
+      const firstAsset = buildSourceAssetOptions(source)[0]
+      setAddSourceId(source.id)
+      setAddSourceAsset(firstAsset?.value ?? '')
+    }
+  }
+
+  const selectSource = (sourceId: string) => {
+    const source = availableSources.find(entry => entry.id === sourceId)
+    setAddSourceId(sourceId)
+    setAddSourceAsset(source ? buildSourceAssetOptions(source)[0]?.value ?? '' : '')
+  }
+
+  const canAddDocument = addMode === 'source'
+    ? !!selectedSource && !!addSourceAsset
+    : !!addFileName.trim()
 
   return (
     <div className="space-y-4 pr-6">
@@ -363,40 +414,79 @@ export function KnowledgeDocumentsView({ item }: { item: Knowledge2Item }) {
         <DialogContent className="w-[520px] max-w-[calc(100vw-2rem)]">
           <DialogCloseButton />
           <DialogTitle className="system-md-semibold text-text-secondary">Add document asset</DialogTitle>
-          <p className="mt-1 system-sm-regular text-text-tertiary">Upload a file to a connected source. The asset will enter parser and index processing.</p>
+          <p className="mt-1 system-sm-regular text-text-tertiary">Create a Document from a local upload or from files exposed by an existing Source.</p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <AddDocumentModeCard mode="manual" selected={addMode === 'manual'} title="Manual upload" description="Upload a local file." onSelect={selectAddMode} />
+            <AddDocumentModeCard mode="source" selected={addMode === 'source'} title="Existing source" description="Pick a file or page from a Source." onSelect={selectAddMode} />
+          </div>
           <div className="mt-4 space-y-3">
-            <Field label="Source">
-              <Select items={sourceOptions} value={addSource} onValueChange={(value) => { if (value !== null) setAddSource(value) }}>
-                <SelectTrigger size="large" aria-label="Source" className="w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {sourceOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <SelectItemText>{option.label}</SelectItemText>
-                      <SelectItemIndicator />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="File name">
-              <Input value={addFileName} onChange={event => setAddFileName(event.target.value)} placeholder="e.g. onboarding-guide.pdf" />
-            </Field>
-            <button
-              type="button"
-              onClick={() => {
-                if (!addFileName)
-                  setAddFileName('uploaded-asset.pdf')
-              }}
-              className="flex w-full flex-col items-center justify-center rounded-xl border border-dashed border-divider-regular bg-background-default-subtle px-4 py-8 hover:bg-state-base-hover"
-            >
-              <RiUploadCloud2Line className="size-8 text-text-quaternary" />
-              <span className="mt-2 system-sm-medium text-text-secondary">Click to choose files</span>
-              <span className="mt-1 system-xs-regular text-text-tertiary">PDF, DOCX, MD, HTML, and more</span>
-            </button>
+            {addMode === 'manual'
+              ? (
+                  <>
+                    <Field label="File name">
+                      <Input value={addFileName} onChange={event => setAddFileName(event.target.value)} placeholder="e.g. onboarding-guide.pdf" />
+                    </Field>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!addFileName)
+                          setAddFileName('uploaded-asset.pdf')
+                      }}
+                      className="flex w-full flex-col items-center justify-center rounded-xl border border-dashed border-divider-regular bg-background-default-subtle px-4 py-8 hover:bg-state-base-hover"
+                    >
+                      <RiUploadCloud2Line className="size-8 text-text-quaternary" />
+                      <span className="mt-2 system-sm-medium text-text-secondary">Click to choose files</span>
+                      <span className="mt-1 system-xs-regular text-text-tertiary">PDF, DOCX, MD, HTML, and more</span>
+                    </button>
+                  </>
+                )
+              : availableSources.length
+                ? (
+                    <>
+                      <Field label="Source">
+                        <Select items={sourceOptions} value={addSourceId} onValueChange={(value) => { if (value !== null) selectSource(value) }}>
+                          <SelectTrigger size="large" aria-label="Source" className="w-full"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {sourceOptions.map(option => (
+                              <SelectItem key={option.value} value={option.value}>
+                                <SelectItemText>{option.label}</SelectItemText>
+                                <SelectItemIndicator />
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Document asset">
+                        <Select items={sourceAssetOptions} value={addSourceAsset} onValueChange={(value) => { if (value !== null) setAddSourceAsset(value) }}>
+                          <SelectTrigger size="large" aria-label="Document asset" className="w-full"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {sourceAssetOptions.map(option => (
+                              <SelectItem key={option.value} value={option.value}>
+                                <SelectItemText>{option.label}</SelectItemText>
+                                <SelectItemIndicator />
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      {selectedSource && (
+                        <div className="rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-2">
+                          <div className="system-xs-medium text-text-secondary">{sourceTypeLabels[selectedSource.type]}</div>
+                          <div className="mt-0.5 system-xs-regular text-text-tertiary">{selectedSource.providerName ?? 'Default provider'} · {selectedSource.endpoint ?? 'Provider-managed selection'}</div>
+                        </div>
+                      )}
+                    </>
+                  )
+                : (
+                    <div className="rounded-xl border border-divider-subtle bg-background-default-subtle px-4 py-6 text-center">
+                      <div className="system-sm-medium text-text-secondary">No existing Sources</div>
+                      <div className="mt-1 system-xs-regular text-text-tertiary">Add a Source in Sources first, then return here to pick its files.</div>
+                    </div>
+                  )}
           </div>
           <div className="mt-6 flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button variant="primary" onClick={handleAddDocument} disabled={!addFileName.trim() || !addSource}>Add file</Button>
+            <Button variant="primary" onClick={handleAddDocument} disabled={!canAddDocument}>Add document</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -508,6 +598,69 @@ function DocumentRowActions({
       </DropdownMenu>
     </div>
   )
+}
+
+function AddDocumentModeCard({
+  mode,
+  selected,
+  title,
+  description,
+  onSelect,
+}: {
+  mode: AddDocumentMode
+  selected: boolean
+  title: string
+  description: string
+  onSelect: (mode: AddDocumentMode) => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(mode)}
+      className={cn(
+        'relative min-h-20 rounded-xl border p-3 text-left',
+        selected
+          ? 'border-components-option-card-option-selected-border bg-components-option-card-option-selected-bg ring-[0.5px] ring-components-option-card-option-selected-border'
+          : 'border-divider-subtle bg-background-default-subtle hover:bg-state-base-hover',
+      )}
+    >
+      <div className="system-sm-medium text-text-secondary">{title}</div>
+      <div className="mt-1 system-xs-regular text-text-tertiary">{description}</div>
+      {selected && <span className="i-ri-check-line absolute top-3 right-3 size-4 text-text-accent" />}
+    </button>
+  )
+}
+
+function buildSourceAssetOptions(source: KnowledgeSourceRow): SourceAssetOption[] {
+  if (source.type === 'website-crawl') {
+    const host = source.endpoint ? readableHost(source.endpoint) : source.name
+    return [
+      { value: `${source.id}-home`, label: `${host} home page`, description: source.endpoint ?? source.name },
+      { value: `${source.id}-docs`, label: `${host} docs index`, description: `${source.endpoint ?? source.name}/docs` },
+      { value: `${source.id}-faq`, label: `${host} FAQ page`, description: `${source.endpoint ?? source.name}/faq` },
+    ]
+  }
+  if (source.type === 'online-documents') {
+    return [
+      { value: `${source.id}-sop`, label: `${source.name} support SOP`, description: 'Selected page from document workspace' },
+      { value: `${source.id}-handoff`, label: `${source.name} escalation handoff`, description: 'Selected page from document workspace' },
+      { value: `${source.id}-faq`, label: `${source.name} customer FAQ`, description: 'Selected page from document workspace' },
+    ]
+  }
+  return [
+    { value: `${source.id}-refund`, label: `${source.name} refund-policy.pdf`, description: 'Selected file from drive or object storage' },
+    { value: `${source.id}-onboarding`, label: `${source.name} onboarding-guide.docx`, description: 'Selected file from drive or object storage' },
+    { value: `${source.id}-release`, label: `${source.name} release-notes.md`, description: 'Selected file from drive or object storage' },
+  ]
+}
+
+function readableHost(value: string) {
+  try {
+    return new URL(value).host
+  }
+  catch {
+    return value.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || value
+  }
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

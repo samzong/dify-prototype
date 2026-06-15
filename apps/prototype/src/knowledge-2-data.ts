@@ -16,7 +16,7 @@ export type KnowledgeBlocker = {
   tone: BadgeTone
 }
 
-export type KnowledgeSourceType = 'upload' | 'web' | 'connector' | 'object-storage'
+export type KnowledgeSourceType = 'website-crawl' | 'online-documents' | 'online-drive'
 
 export type SourceFreshnessStrategy = 'realtime' | 'ttl' | 'manual' | 'async'
 
@@ -36,6 +36,8 @@ export type KnowledgeSourceRow = {
   permission: DatasetPermission
   lastSync: string
   endpoint?: string
+  providerName?: string
+  configSummary?: { label: string; value: string }[]
 }
 
 export type KnowledgeDocumentParserStatus = 'pending' | 'parsed' | 'failed'
@@ -54,24 +56,22 @@ export type KnowledgeDocumentRow = {
 }
 
 export const knowledgeSourceTypeOptions: { value: KnowledgeSourceType; label: string; description: string }[] = [
-  { value: 'upload', label: 'Upload', description: 'Add files directly from your device or workspace storage.' },
-  { value: 'web', label: 'Web', description: 'Crawl a website or sitemap on a freshness schedule.' },
-  { value: 'connector', label: 'Connector', description: 'Sync from Notion, Google Drive, and other connectors.' },
-  { value: 'object-storage', label: 'Object storage', description: 'Mount a bucket or folder from object storage.' },
+  { value: 'website-crawl', label: 'Website crawl', description: 'Crawl a website or sitemap on a sync schedule.' },
+  { value: 'online-documents', label: 'Online documents', description: 'Sync selected pages from document providers.' },
+  { value: 'online-drive', label: 'Online drive', description: 'Sync selected files from drive or bucket providers.' },
 ]
 
 export const sourceFreshnessOptions: { value: SourceFreshnessStrategy; label: string; staleAfterSeconds?: number }[] = [
-  { value: 'realtime', label: 'Realtime' },
-  { value: 'ttl', label: 'TTL 24h', staleAfterSeconds: 86400 },
-  { value: 'manual', label: 'Manual' },
-  { value: 'async', label: 'Async' },
+  { value: 'realtime', label: 'Watch changes' },
+  { value: 'ttl', label: 'Scheduled · 24h', staleAfterSeconds: 86400 },
+  { value: 'manual', label: 'Manual sync' },
+  { value: 'async', label: 'Provider sync' },
 ]
 
 export const sourceTypeLabels: Record<KnowledgeSourceType, string> = {
-  upload: 'Upload',
-  web: 'Web',
-  connector: 'Connector',
-  'object-storage': 'Object storage',
+  'website-crawl': 'Website crawl',
+  'online-documents': 'Online documents',
+  'online-drive': 'Online drive',
 }
 
 export const datasetPermissionLabels: Record<DatasetPermission, string> = {
@@ -241,14 +241,14 @@ export const knowledge2Items: Knowledge2Item[] = [
     type: 'Internal',
     permission: 'Workspace',
     apiEnabled: true,
-    sourceCount: 4,
+    sourceCount: 3,
     documentsLabel: '128 / 132',
     indexStatus: 'Ready',
     evidenceStatus: 'Partial',
     usageLabel: '7 apps',
     updatedAt: '3 hours ago',
     statusBlocks: [
-      { label: 'Sources', value: '4 connected', note: '1 syncing', tone: 'good' },
+      { label: 'Sources', value: '3 connected', note: '1 syncing', tone: 'good' },
       { label: 'Documents', value: '128 / 132', note: '4 failed docs', tone: 'warn' },
       { label: 'Index', value: 'Ready', note: 'Dense + FTS ready', tone: 'good' },
       { label: 'Evidence', value: 'Partial', note: '2 unanswered golden questions', tone: 'warn' },
@@ -262,13 +262,12 @@ export const knowledge2Items: Knowledge2Item[] = [
       { title: 'Missing evidence', detail: 'Refund policy has 2 unanswered golden questions.', tone: 'warn' },
     ],
     sources: [
-      { id: 'support-handbook-src-1', name: 'Help center upload', type: 'upload', status: 'Active', freshness: { strategy: 'manual' }, permission: 'all_team_members', lastSync: '3 hours ago' },
-      { id: 'support-handbook-src-2', name: 'docs.dify.ai', type: 'web', status: 'Active', freshness: { strategy: 'ttl', staleAfterSeconds: 86400 }, permission: 'all_team_members', lastSync: '6 hours ago', endpoint: 'https://docs.dify.ai' },
-      { id: 'support-handbook-src-3', name: 'Notion support SOP', type: 'connector', status: 'Syncing', freshness: { strategy: 'async' }, permission: 'partial_members', lastSync: '12 min ago' },
-      { id: 'support-handbook-src-4', name: 'Escalation archive', type: 'object-storage', status: 'Active', freshness: { strategy: 'manual' }, permission: 'all_team_members', lastSync: '2 days ago' },
+      { id: 'support-handbook-src-2', name: 'docs.dify.ai', type: 'website-crawl', status: 'Active', freshness: { strategy: 'ttl', staleAfterSeconds: 86400 }, permission: 'all_team_members', lastSync: '6 hours ago', endpoint: 'https://docs.dify.ai', providerName: 'Firecrawl' },
+      { id: 'support-handbook-src-3', name: 'Notion support SOP', type: 'online-documents', status: 'Syncing', freshness: { strategy: 'async' }, permission: 'partial_members', lastSync: '12 min ago', providerName: 'Notion' },
+      { id: 'support-handbook-src-4', name: 'Escalation archive', type: 'online-drive', status: 'Active', freshness: { strategy: 'async' }, permission: 'all_team_members', lastSync: '2 days ago', endpoint: 's3://support/escalations', providerName: 'Amazon S3' },
     ],
     documents: [
-      { id: 'support-handbook-doc-1', name: 'refund-policy.md', source: 'Help center upload', parserStatus: 'parsed', version: 'v3', indexStatus: 'ready', evidenceUse: 'Included', updatedAt: '3 hours ago' },
+      { id: 'support-handbook-doc-1', name: 'refund-policy.md', source: 'Manual upload', parserStatus: 'parsed', version: 'v3', indexStatus: 'ready', evidenceUse: 'Included', updatedAt: '3 hours ago' },
       { id: 'support-handbook-doc-2', name: 'sso-enterprise.pdf', source: 'Notion support SOP', parserStatus: 'parsed', version: 'v2', indexStatus: 'ready', evidenceUse: 'Included', updatedAt: '12 min ago' },
       { id: 'support-handbook-doc-3', name: 'pricing-legacy.html', source: 'docs.dify.ai', parserStatus: 'parsed', version: 'v1', indexStatus: 'stale', evidenceUse: 'Excluded from Deep', updatedAt: '2 days ago' },
       { id: 'support-handbook-doc-4', name: 'escalation-matrix.xlsx', source: 'Escalation archive', parserStatus: 'failed', version: 'v1', indexStatus: 'failed', evidenceUse: 'Excluded', updatedAt: '2 days ago' },
@@ -364,13 +363,13 @@ export const knowledge2Items: Knowledge2Item[] = [
       { title: 'Conflicting evidence', detail: 'Two docs disagree on API key rotation limits.', tone: 'warn' },
     ],
     sources: [
-      { id: 'docs-crawl-src-1', name: 'docs.dify.ai', type: 'web', status: 'Error', freshness: { strategy: 'ttl', staleAfterSeconds: 86400 }, permission: 'all_team_members', lastSync: 'yesterday', endpoint: 'https://docs.dify.ai' },
-      { id: 'docs-crawl-src-2', name: 'release-notes', type: 'connector', status: 'Active', freshness: { strategy: 'async' }, permission: 'partial_members', lastSync: '2 hours ago' },
+      { id: 'docs-crawl-src-1', name: 'docs.dify.ai', type: 'website-crawl', status: 'Error', freshness: { strategy: 'ttl', staleAfterSeconds: 86400 }, permission: 'all_team_members', lastSync: 'yesterday', endpoint: 'https://docs.dify.ai', providerName: 'Firecrawl' },
+      { id: 'docs-crawl-src-2', name: 'Release notes workspace', type: 'online-documents', status: 'Active', freshness: { strategy: 'async' }, permission: 'partial_members', lastSync: '2 hours ago', providerName: 'Notion' },
     ],
     documents: [
       { id: 'docs-crawl-doc-1', name: 'api-keys.md', source: 'docs.dify.ai', parserStatus: 'parsed', version: 'v4', indexStatus: 'failed', evidenceUse: 'Excluded', updatedAt: 'yesterday' },
       { id: 'docs-crawl-doc-2', name: 'workflow-nodes.md', source: 'docs.dify.ai', parserStatus: 'parsed', version: 'v2', indexStatus: 'stale', evidenceUse: 'Included', updatedAt: 'yesterday' },
-      { id: 'docs-crawl-doc-3', name: 'release-2026-06.md', source: 'release-notes', parserStatus: 'parsed', version: 'v1', indexStatus: 'ready', evidenceUse: 'Included', updatedAt: '2 hours ago' },
+      { id: 'docs-crawl-doc-3', name: 'release-2026-06.md', source: 'Release notes workspace', parserStatus: 'parsed', version: 'v1', indexStatus: 'ready', evidenceUse: 'Included', updatedAt: '2 hours ago' },
     ],
     evidenceState: 'conflict',
     evidenceItems: [
@@ -535,9 +534,9 @@ export const knowledge2Items: Knowledge2Item[] = [
       { title: 'Workflow caution', detail: 'Attachment variable required for image retrieval.', tone: 'warn' },
     ],
     sources: [
-      { id: 'sales-deck-src-1', name: 'Sales drive', type: 'connector', status: 'Active', freshness: { strategy: 'async' }, permission: 'partial_members', lastSync: '20 min ago' },
-      { id: 'sales-deck-src-2', name: 'Product screenshots', type: 'upload', status: 'Active', freshness: { strategy: 'manual' }, permission: 'partial_members', lastSync: '1 day ago' },
-      { id: 'sales-deck-src-3', name: 'Demo recordings', type: 'object-storage', status: 'Active', freshness: { strategy: 'manual' }, permission: 'partial_members', lastSync: '3 days ago' },
+      { id: 'sales-deck-src-1', name: 'Sales drive', type: 'online-drive', status: 'Active', freshness: { strategy: 'async' }, permission: 'partial_members', lastSync: '20 min ago', providerName: 'Google Drive' },
+      { id: 'sales-deck-src-2', name: 'Product screenshots', type: 'online-drive', status: 'Active', freshness: { strategy: 'async' }, permission: 'partial_members', lastSync: '1 day ago', providerName: 'Google Drive' },
+      { id: 'sales-deck-src-3', name: 'Demo recordings', type: 'online-drive', status: 'Active', freshness: { strategy: 'manual' }, permission: 'partial_members', lastSync: '3 days ago', endpoint: 's3://sales/demo-recordings', providerName: 'Amazon S3' },
     ],
     documents: [
       { id: 'sales-deck-doc-1', name: 'enterprise-deck.pdf', source: 'Sales drive', parserStatus: 'parsed', version: 'v5', indexStatus: 'building', evidenceUse: 'Included', updatedAt: '20 min ago' },
@@ -632,8 +631,8 @@ export const knowledge2Items: Knowledge2Item[] = [
     ],
     blockers: [],
     sources: [
-      { id: 'release-notes-src-1', name: 'Changelog feed', type: 'connector', status: 'Active', freshness: { strategy: 'async' }, permission: 'partial_members', lastSync: '1 hour ago' },
-      { id: 'release-notes-src-2', name: 'Launch briefs', type: 'upload', status: 'Active', freshness: { strategy: 'manual' }, permission: 'partial_members', lastSync: 'yesterday' },
+      { id: 'release-notes-src-1', name: 'Changelog feed', type: 'online-documents', status: 'Active', freshness: { strategy: 'async' }, permission: 'partial_members', lastSync: '1 hour ago', providerName: 'Notion' },
+      { id: 'release-notes-src-2', name: 'Launch briefs', type: 'online-drive', status: 'Active', freshness: { strategy: 'manual' }, permission: 'partial_members', lastSync: 'yesterday', providerName: 'Google Drive' },
     ],
     documents: [
       { id: 'release-notes-doc-1', name: 'changelog-2026-06.md', source: 'Changelog feed', parserStatus: 'parsed', version: 'v2', indexStatus: 'ready', evidenceUse: 'Included', updatedAt: '1 hour ago' },
@@ -720,7 +719,7 @@ export function documentMatchesStatusFilter(
 export function formatSourceFreshness(freshness: SourceFreshness) {
   if (freshness.strategy === 'ttl') {
     const hours = Math.round((freshness.staleAfterSeconds ?? 0) / 3600)
-    return hours > 0 ? `TTL ${hours}h` : 'TTL'
+    return hours > 0 ? `Scheduled · ${hours}h` : 'Scheduled'
   }
   return sourceFreshnessOptions.find(option => option.value === freshness.strategy)?.label ?? freshness.strategy
 }

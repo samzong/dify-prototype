@@ -22,6 +22,7 @@ import {
 } from '@remixicon/react'
 import { useEffect, useMemo, useState } from 'react'
 import { Knowledge2Section, KnowledgeTopNav } from './Knowledge2Workbench'
+import { knowledge2Items, type Knowledge2Item } from './knowledge-2-data'
 import { prototypeApps, type AppMode, type PrototypeApp } from './prototype-data'
 import { WorkflowOrchestrate } from './WorkflowOrchestrate'
 
@@ -265,6 +266,7 @@ function AppsDefaultPage({
 }) {
   const [activeSection, setActiveSection] = useState<MainSection>('studio')
   const [knowledgeScreen, setKnowledgeScreen] = useState<'list' | string>('list')
+  const [knowledgeItems, setKnowledgeItems] = useState<Knowledge2Item[]>(() => knowledge2Items)
   const [keywords, setKeywords] = useState('')
   const filteredApps = useMemo(() => {
     const query = keywords.trim().toLowerCase()
@@ -288,8 +290,10 @@ function AppsDefaultPage({
           if (section === 'knowledge')
             setKnowledgeScreen('list')
         }}
+        knowledgeItems={knowledgeItems}
         onGoToKnowledgeList={() => setKnowledgeScreen('list')}
         onSelectKnowledge={setKnowledgeScreen}
+        onOpenKnowledgeCreate={mode => setKnowledgeScreen(`create:${mode}`)}
         onThemeChange={onThemeChange}
         onSignOut={onSignOut}
       />
@@ -320,7 +324,16 @@ function AppsDefaultPage({
         : (
             <Knowledge2Section
               screen={knowledgeScreen}
+              items={knowledgeItems}
               onOpenDetail={setKnowledgeScreen}
+              onOpenCreate={mode => setKnowledgeScreen(`create:${mode}`)}
+              onUpdateKnowledge={(id, updater) => {
+                setKnowledgeItems(current => current.map(item => item.id === id ? updater(item) : item))
+              }}
+              onCreateKnowledge={(item) => {
+                setKnowledgeItems(current => [item, ...current])
+                setKnowledgeScreen(item.id)
+              }}
             />
           )}
     </div>
@@ -331,18 +344,22 @@ function Header({
   theme,
   activeSection,
   knowledgeScreen,
+  knowledgeItems,
   onSectionChange,
   onGoToKnowledgeList,
   onSelectKnowledge,
+  onOpenKnowledgeCreate,
   onThemeChange,
   onSignOut,
 }: {
   theme: 'light' | 'dark'
   activeSection: MainSection
   knowledgeScreen: 'list' | string
+  knowledgeItems: Knowledge2Item[]
   onSectionChange: (section: MainSection) => void
   onGoToKnowledgeList: () => void
   onSelectKnowledge: (id: string) => void
+  onOpenKnowledgeCreate: (mode: 'standard' | 'pipeline' | 'external') => void
   onThemeChange: (theme: 'light' | 'dark') => void
   onSignOut: () => void
 }) {
@@ -372,9 +389,11 @@ function Header({
           <KnowledgeTopNav
             active={activeSection === 'knowledge'}
             screen={knowledgeScreen}
+            items={knowledgeItems}
             onActivate={() => onSectionChange('knowledge')}
             onGoToList={onGoToKnowledgeList}
             onSelectKnowledge={onSelectKnowledge}
+            onOpenCreate={onOpenKnowledgeCreate}
           />
           <TopNav icon={<span className="i-ri-hammer-line size-4" />} text="Tools" />
         </div>
