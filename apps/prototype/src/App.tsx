@@ -21,9 +21,13 @@ import {
   RiTShirt2Line,
 } from '@remixicon/react'
 import { useEffect, useMemo, useState } from 'react'
+import { AccountDropdown } from './AccountDropdown'
+import { AccountSettingsView, type SettingsTab } from './AccountSettingsView'
 import { Knowledge2Section, KnowledgeTopNav } from './Knowledge2Workbench'
 import { knowledge2Items, type Knowledge2Item } from './knowledge-2-data'
 import { prototypeApps, type AppMode, type PrototypeApp } from './prototype-data'
+import { useThemePreference } from './use-theme-preference'
+import { type AppearanceMode } from './theme-preference'
 import { WorkflowOrchestrate } from './WorkflowOrchestrate'
 
 type MainSection = 'studio' | 'knowledge' | 'workflow'
@@ -47,20 +51,30 @@ const appTypeIconClassNames: Record<AppMode, string> = {
 const prototypeRepositoryUrl = 'https://github.com/samzong/dify-prototype'
 
 function App() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const { appearanceMode, theme, setAppearanceMode, setThemePreference } = useThemePreference()
   const [authenticated, setAuthenticated] = useState(false)
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme
-  }, [theme])
 
   return (
     <TooltipProvider delay={300} closeDelay={200}>
       <ToastHost timeout={3000} limit={3} />
       <div className="isolate h-full">
         {authenticated
-          ? <AppsDefaultPage theme={theme} onThemeChange={setTheme} onSignOut={() => setAuthenticated(false)} />
-          : <SignInPage theme={theme} onThemeChange={setTheme} onSignedIn={() => setAuthenticated(true)} />}
+          ? (
+              <AppsDefaultPage
+                theme={theme}
+                appearanceMode={appearanceMode}
+                onThemeChange={setThemePreference}
+                onAppearanceChange={setAppearanceMode}
+                onSignOut={() => setAuthenticated(false)}
+              />
+            )
+          : (
+              <SignInPage
+                theme={theme}
+                onThemeChange={setThemePreference}
+                onSignedIn={() => setAuthenticated(true)}
+              />
+            )}
       </div>
     </TooltipProvider>
   )
@@ -257,17 +271,28 @@ function PrototypeRepoLink({ className }: { className?: string }) {
 
 function AppsDefaultPage({
   theme,
+  appearanceMode,
   onThemeChange,
+  onAppearanceChange,
   onSignOut,
 }: {
   theme: 'light' | 'dark'
+  appearanceMode: AppearanceMode
   onThemeChange: (theme: 'light' | 'dark') => void
+  onAppearanceChange: (mode: AppearanceMode) => void
   onSignOut: () => void
 }) {
   const [activeSection, setActiveSection] = useState<MainSection>('studio')
   const [knowledgeScreen, setKnowledgeScreen] = useState<'list' | string>('list')
   const [knowledgeItems, setKnowledgeItems] = useState<Knowledge2Item[]>(() => knowledge2Items)
   const [keywords, setKeywords] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTab>('provider')
+
+  const openSettings = (tab: SettingsTab = 'provider') => {
+    setSettingsInitialTab(tab)
+    setSettingsOpen(true)
+  }
   const filteredApps = useMemo(() => {
     const query = keywords.trim().toLowerCase()
     if (!query)
@@ -296,6 +321,16 @@ function AppsDefaultPage({
         onOpenKnowledgeCreate={mode => setKnowledgeScreen(`create:${mode}`)}
         onThemeChange={onThemeChange}
         onSignOut={onSignOut}
+        onOpenSettings={() => openSettings('provider')}
+        onOpenSettingsTab={openSettings}
+      />
+      <AccountSettingsView
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        theme={theme}
+        appearanceMode={appearanceMode}
+        onAppearanceChange={onAppearanceChange}
+        initialTab={settingsInitialTab}
       />
       {activeSection === 'studio'
         ? (
@@ -351,6 +386,8 @@ function Header({
   onOpenKnowledgeCreate,
   onThemeChange,
   onSignOut,
+  onOpenSettings,
+  onOpenSettingsTab,
 }: {
   theme: 'light' | 'dark'
   activeSection: MainSection
@@ -362,6 +399,8 @@ function Header({
   onOpenKnowledgeCreate: (mode: 'standard' | 'pipeline' | 'external') => void
   onThemeChange: (theme: 'light' | 'dark') => void
   onSignOut: () => void
+  onOpenSettings: () => void
+  onOpenSettingsTab: (tab: SettingsTab) => void
 }) {
   return (
     <header className="sticky top-0 right-0 left-0 z-30 flex min-h-[56px] shrink-0 grow-0 basis-auto flex-col border-b border-divider-regular bg-background-body">
@@ -402,12 +441,15 @@ function Header({
           <button type="button" className="mr-2 flex size-8 items-center justify-center rounded-lg text-text-tertiary hover:bg-state-base-hover" onClick={() => onThemeChange(theme === 'light' ? 'dark' : 'light')}>
             <RiTShirt2Line className="size-4" />
           </button>
-          <button type="button" className="mr-2 flex size-8 items-center justify-center rounded-lg text-text-tertiary hover:bg-state-base-hover">
+          <button type="button" aria-label="Settings" className="mr-2 flex size-8 items-center justify-center rounded-lg text-text-tertiary hover:bg-state-base-hover" onClick={onOpenSettings}>
             <RiSettings3Line className="size-4" />
           </button>
-          <button type="button" className="inline-flex items-center rounded-[20px] p-0.5 hover:bg-background-default-dodge" onClick={onSignOut}>
-            <span className="flex size-8 items-center justify-center rounded-full bg-components-avatar-default-avatar-bg system-sm-semibold text-text-primary-on-surface">A</span>
-          </button>
+          <AccountDropdown
+            theme={theme}
+            onThemeChange={onThemeChange}
+            onOpenSettings={onOpenSettingsTab}
+            onSignOut={onSignOut}
+          />
         </div>
       </div>
     </header>

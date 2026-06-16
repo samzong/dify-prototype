@@ -64,6 +64,7 @@ Primary synced sources:
 - Use `@langgenius/dify-ui/*` primitives for buttons, dialogs, drawers, dropdowns, fields, forms, inputs, tabs, popovers, tooltips, selects, switches, checkboxes, and related controls.
 - Use Dify CSS tokens and Tailwind utility classes from the synced source.
 - Use Dify icon systems from the synced source: `i-ri-*`, `i-custom-*`, `@remixicon/react`, and Dify SVG icon components.
+- Model provider and marketplace plugin logos must come from synced Dify sources: `dify-source/web/app/components/base/icons/src/public/llm`, `dify-source/web/app/components/base/icons/src/vender/other`, or the Dify Marketplace plugin icon URL pattern (`https://marketplace.dify.ai/api/v1/plugins/{org}/{name}/icon`). Never use colored letter blocks or invented brand marks as provider logos.
 - Mock data is allowed. Fake visual styling is not.
 - Do not connect prototypes to real Dify backend services unless the user explicitly requests it.
 - Do not edit synced upstream mirrors directly. Put prototype adapters, fixtures, and new screens in the prototype app or prototype kit.

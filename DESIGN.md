@@ -302,6 +302,8 @@ Workflow screens must use a canvas-first layout. Nodes sit on a dotted canvas, c
 
 Use Dify icon systems: `i-ri-*`, `i-custom-*`, `@remixicon/react`, and synced SVG assets. Icons should be functional and small, usually 12-20px. Do not create custom decorative SVGs for standard controls.
 
+Model provider branding must reuse synced Dify SVG components under `dify-source/web/app/components/base/icons/` (for example `Openai`, `OpenaiSmall`, `Gemini`, `Grok`, `Deepseek`, `Tongyi`, `Anthropic`, `AzureOpenaiService`, `Cohere`) or Dify Marketplace plugin icon URLs. Do not substitute letter tiles or invented logos.
+
 ## Do's and Don'ts
 
 - Do run `pnpm sync:dify` before creating or updating a Dify prototype screen.

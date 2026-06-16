@@ -31,6 +31,10 @@ export default defineConfig({
         find: /^@dify\/iconify-collections\/custom-vender$/,
         replacement: path.resolve(root, 'packages/iconify-collections/custom-vender/index.mjs'),
       },
+      {
+        find: /^@\/app\/(.*)$/,
+        replacement: `${path.resolve(root, 'dify-source/web/app')}/$1`,
+      },
     ],
   },
   server: {
