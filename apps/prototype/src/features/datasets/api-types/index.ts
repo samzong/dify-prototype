@@ -7,6 +7,7 @@ export * from './quality'
 export * from './operations'
 export * from './research'
 export * from './fs'
+export * from './graph'
 
 export type { DocumentAsset as Document } from './documents'
 export type { DocumentCompilationJob as Job } from './jobs'

@@ -72,3 +72,58 @@ export type KnowledgeFsDiffResponse = {
     lines: { prefix: '+' | '-' | ' '; text: string }[]
   }[]
 }
+
+export type KnowledgeFsFindItem = {
+  kind: 'directory' | 'resource'
+  name: string
+  path: string
+  resourceType?: 'source' | 'document' | 'node' | 'artifact' | 'evidence' | 'workspace'
+  targetId?: string
+  version?: number
+  metadata: Record<string, unknown>
+}
+
+export type KnowledgeFsFindResponse = {
+  path: string
+  items: KnowledgeFsFindItem[]
+  truncated: boolean
+  nextCursor?: string
+}
+
+export type KnowledgeFsOpenNodeResponse = {
+  node: {
+    id: string
+    knowledgeSpaceId: string
+    documentAssetId: string
+    parseArtifactId: string
+    artifactHash: string
+    kind: 'chunk' | 'section' | 'table' | 'image' | 'summary'
+    text: string
+    startOffset: number
+    endOffset: number
+    metadata?: Record<string, unknown>
+    permissionScope?: string[]
+    sourceLocation: {
+      startOffset?: number
+      endOffset?: number
+      pageNumber?: number
+      sectionPath?: string[]
+    }
+    updatedAt?: string
+  }
+  citation: {
+    documentAssetId: string
+    parseArtifactId: string
+    artifactHash: string
+    startOffset: number
+    endOffset: number
+    pageNumber?: number
+    sectionPath: string[]
+  }
+}
+
+export type KnowledgeFsWriteResponse = {
+  path: string
+  sizeBytes: number
+  modifiedAt: string
+}

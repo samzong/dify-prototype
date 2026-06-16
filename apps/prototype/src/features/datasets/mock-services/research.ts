@@ -1,8 +1,48 @@
-import type { ResearchTaskDryRunPlan, ResearchTaskEvent, ResearchTaskJob, ResearchTaskPartialResultList, ResearchTaskStage } from '../api-types'
+import type {
+  ResearchTaskDryRunPlan,
+  ResearchTaskEvent,
+  ResearchTaskJob,
+  ResearchTaskPartialResult,
+  ResearchTaskPartialResultList,
+  ResearchTaskStage,
+} from '../api-types'
 import { RESEARCH_TASK_STAGES } from '../api-types'
 import { delay, emitStream, pollStages } from './helpers'
 import { getKnowledgeMockStore, mutateKnowledgeMockStore } from './store'
 import { MockServiceError } from '../api-types'
+
+const PARTIALS_KEY = '_prototypePartials'
+const EVENTS_KEY = '_prototypeEvents'
+
+function readPartials(task: ResearchTaskJob) {
+  return (task.metadata[PARTIALS_KEY] as ResearchTaskPartialResult[] | undefined) ?? []
+}
+
+function readEvents(task: ResearchTaskJob) {
+  return (task.metadata[EVENTS_KEY] as ResearchTaskEvent[] | undefined) ?? []
+}
+
+function appendEvent(taskId: string, event: ResearchTaskEvent) {
+  mutateKnowledgeMockStore((draft) => {
+    const task = draft.researchTasks[taskId]
+    if (!task)
+      return
+    const events = readEvents(task)
+    events.push(event)
+    task.metadata[EVENTS_KEY] = events
+  })
+}
+
+function appendPartial(taskId: string, partial: ResearchTaskPartialResult) {
+  mutateKnowledgeMockStore((draft) => {
+    const task = draft.researchTasks[taskId]
+    if (!task)
+      return
+    const partials = readPartials(task)
+    partials.push(partial)
+    task.metadata[PARTIALS_KEY] = partials
+  })
+}
 
 export async function planResearchTask(input: { knowledgeSpaceId: string; query: string; budgetUsd?: number }) {
   await delay(220)
@@ -90,6 +130,14 @@ export async function createResearchTask(input: {
   return structuredClone(task)
 }
 
+export async function listResearchTasksBySpace(spaceId: string) {
+  await delay(140)
+  const items = Object.values(getKnowledgeMockStore().researchTasks)
+    .filter(task => task.knowledgeSpaceId === spaceId)
+    .sort((left, right) => right.createdAt - left.createdAt)
+  return items.map(task => structuredClone(task) as ResearchTaskJob)
+}
+
 export async function getResearchTask(taskId: string) {
   await delay(100)
   const task = getKnowledgeMockStore().researchTasks[taskId]
@@ -114,6 +162,13 @@ export async function cancelResearchTask(taskId: string) {
     task.stage = 'canceled'
     task.updatedAt = Date.now()
     task.completedAt = Date.now()
+    appendEvent(taskId, {
+      id: crypto.randomUUID(),
+      type: 'log',
+      at: new Date().toISOString(),
+      message: 'Research task canceled',
+      stage: 'canceled',
+    })
     canceled = structuredClone(task)
   })
 
@@ -129,15 +184,25 @@ export async function listResearchPartials(taskId: string): Promise<ResearchTask
   if (!task)
     throw new MockServiceError(404, 'Research task not found')
 
-  return { items: [] }
+  return { items: readPartials(task).map(entry => structuredClone(entry)) }
+}
+
+export async function listResearchEvents(taskId: string) {
+  await delay(100)
+  const task = getKnowledgeMockStore().researchTasks[taskId]
+  if (!task)
+    throw new MockServiceError(404, 'Research task not found')
+
+  return { items: readEvents(task).map(entry => structuredClone(entry)) }
 }
 
 export async function streamResearchEvents(
   taskId: string,
   onEvent: (event: ResearchTaskEvent) => void,
 ) {
-  const task = await getResearchTask(taskId)
+  await getResearchTask(taskId)
   const stages = RESEARCH_TASK_STAGES.filter(stage => stage !== 'completed')
+  let partialSequence = readPartials(getKnowledgeMockStore().researchTasks[taskId]!).length
 
   await emitStream(stages, async (stage) => {
     mutateKnowledgeMockStore((draft) => {
@@ -149,13 +214,45 @@ export async function streamResearchEvents(
       current.updatedAt = Date.now()
     })
 
-    onEvent({
+    const event: ResearchTaskEvent = {
       id: crypto.randomUUID(),
       type: 'stage',
       at: new Date().toISOString(),
       message: `Research task entered ${stage}`,
       stage,
-    })
+    }
+    appendEvent(taskId, event)
+    onEvent(event)
+
+    if (stage === 'retrieving') {
+      partialSequence += 1
+      const task = getKnowledgeMockStore().researchTasks[taskId]!
+      const bundle = Object.values(getKnowledgeMockStore().evidenceBundles)[0]
+      if (bundle) {
+        const partial: ResearchTaskPartialResult = {
+          researchTaskJobId: taskId,
+          knowledgeSpaceId: task.knowledgeSpaceId,
+          tenantId: task.tenantId,
+          sequence: partialSequence,
+          evidenceBundle: {
+            ...structuredClone(bundle),
+            query: task.query,
+            state: 'partial',
+          },
+        }
+        appendPartial(taskId, partial)
+        const partialEvent: ResearchTaskEvent = {
+          id: crypto.randomUUID(),
+          type: 'partial',
+          at: new Date().toISOString(),
+          message: `Partial result ${partialSequence} ready`,
+          stage,
+          sequence: partialSequence,
+        }
+        appendEvent(taskId, partialEvent)
+        onEvent(partialEvent)
+      }
+    }
   })
 
   mutateKnowledgeMockStore((draft) => {
@@ -169,13 +266,15 @@ export async function streamResearchEvents(
     current.cost.totalUsd = 0.92
   })
 
-  onEvent({
+  const completedEvent: ResearchTaskEvent = {
     id: crypto.randomUUID(),
     type: 'stage',
     at: new Date().toISOString(),
     message: 'Research task completed',
     stage: 'completed',
-  })
+  }
+  appendEvent(taskId, completedEvent)
+  onEvent(completedEvent)
 
   return getResearchTask(taskId)
 }

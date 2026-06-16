@@ -18,6 +18,8 @@ import type {
   QueryEvidenceVirtualTree,
   ResearchTaskJob,
   RetentionPolicy,
+  ResearchTaskEvent,
+  ResearchTaskPartialResult,
 } from '../../api-types'
 import type { KnowledgeScenarioId } from '../../api-types'
 import {
@@ -25,6 +27,7 @@ import {
   epochAt,
   PROTOTYPE_DOCUMENT_IDS,
   PROTOTYPE_JOB_IDS,
+  PROTOTYPE_RESEARCH_IDS,
   PROTOTYPE_SPACE_IDS,
   PROTOTYPE_TENANT_ID,
   PROTOTYPE_TRACE_IDS,
@@ -320,6 +323,92 @@ function supportHandbookEvidenceBundleConflict(): EvidenceBundle {
   }
 }
 
+function supportHandbookResearchTasks(handbookId: string): Record<string, ResearchTaskJob> {
+  const partialBundle = supportHandbookEvidenceBundlePartial()
+  const completedPartials: ResearchTaskPartialResult[] = [{
+    researchTaskJobId: PROTOTYPE_RESEARCH_IDS.handbookCompleted,
+    knowledgeSpaceId: handbookId,
+    tenantId: PROTOTYPE_TENANT_ID,
+    sequence: 1,
+    evidenceBundle: partialBundle,
+  }]
+  const completedEvents: ResearchTaskEvent[] = [
+    { id: 'evt-r1', type: 'stage', at: isoAt(86400000 * 2), message: 'Research task entered planning', stage: 'planning' },
+    { id: 'evt-r2', type: 'stage', at: isoAt(86400000 * 2 - 60000), message: 'Research task entered retrieving', stage: 'retrieving' },
+    { id: 'evt-r3', type: 'partial', at: isoAt(86400000 * 2 - 45000), message: 'Partial result 1 ready', stage: 'retrieving', sequence: 1 },
+    { id: 'evt-r4', type: 'stage', at: isoAt(86400000), message: 'Research task completed', stage: 'completed' },
+  ]
+
+  return {
+    [PROTOTYPE_RESEARCH_IDS.handbookCompleted]: {
+      id: PROTOTYPE_RESEARCH_IDS.handbookCompleted,
+      knowledgeSpaceId: handbookId,
+      tenantId: PROTOTYPE_TENANT_ID,
+      subjectId: 'subject-prototype',
+      queueJobId: 'queue-research-completed',
+      query: 'What is the Enterprise SSO refund policy?',
+      stage: 'completed',
+      budgetUsd: 2,
+      metadata: {
+        _prototypePartials: completedPartials,
+        _prototypeEvents: completedEvents,
+      },
+      permissionScope: {},
+      limits: {
+        maxRetrievalSteps: 8,
+        maxScannedResources: 40,
+        maxToolCalls: 6,
+        timeoutMs: 120000,
+      },
+      cost: {
+        totalUsd: 0.92,
+        budgetUsd: 2,
+        budgetExceeded: false,
+        entries: [],
+      },
+      createdAt: epochAt(86400000 * 3),
+      updatedAt: epochAt(86400000),
+      completedAt: epochAt(86400000),
+    },
+    [PROTOTYPE_RESEARCH_IDS.handbookFailed]: {
+      id: PROTOTYPE_RESEARCH_IDS.handbookFailed,
+      knowledgeSpaceId: handbookId,
+      tenantId: PROTOTYPE_TENANT_ID,
+      subjectId: 'subject-prototype',
+      queueJobId: 'queue-research-failed',
+      query: 'Map every escalation path for enterprise billing disputes.',
+      stage: 'failed',
+      budgetUsd: 1.5,
+      error: 'Research task exceeded maxRetrievalSteps before synthesis completed.',
+      metadata: {
+        _prototypeEvents: [{
+          id: 'evt-rf1',
+          type: 'error',
+          at: isoAt(86400000 * 4),
+          message: 'Research task exceeded maxRetrievalSteps before synthesis completed.',
+          stage: 'analyzing',
+        }],
+      },
+      permissionScope: {},
+      limits: {
+        maxRetrievalSteps: 8,
+        maxScannedResources: 40,
+        maxToolCalls: 6,
+        timeoutMs: 120000,
+      },
+      cost: {
+        totalUsd: 1.12,
+        budgetUsd: 1.5,
+        budgetExceeded: false,
+        entries: [],
+      },
+      createdAt: epochAt(86400000 * 5),
+      updatedAt: epochAt(86400000 * 4),
+      completedAt: epochAt(86400000 * 4),
+    },
+  }
+}
+
 export function createDefaultScenario(): KnowledgeScenarioBundle {
   const handbookId = PROTOTYPE_SPACE_IDS.supportHandbook
   const handbookDocs = supportHandbookDocuments()
@@ -587,7 +676,7 @@ export function createDefaultScenario(): KnowledgeScenarioBundle {
         updatedAt: isoAt(86400000 * 2),
       },
     ],
-    researchTasks: {},
+    researchTasks: supportHandbookResearchTasks(handbookId),
   }
 }
 

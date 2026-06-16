@@ -60,3 +60,7 @@ export const evidenceStateTones: Record<EvidenceState, BadgeTone> = {
 export const retrievalDepthOptions = ['Fast', 'Deep', 'Research'] as const
 
 export type RetrievalDepthOption = typeof retrievalDepthOptions[number]
+
+export const quickTestDepthOptions = ['Fast', 'Deep'] as const
+
+export type QuickTestDepthOption = typeof quickTestDepthOptions[number]

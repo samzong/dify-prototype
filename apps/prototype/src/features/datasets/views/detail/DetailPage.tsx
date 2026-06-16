@@ -1,6 +1,5 @@
 import type { DatasetDetailTab, DatasetItem } from '../../fixtures/items'
-import { pageMeta } from '../../constants/detail-nav'
-import { detailNavItems } from '../../constants/detail-nav'
+import { pageMeta, detailNavItems } from '../../constants/detail-nav'
 import { DocumentsView } from '../documents/DocumentsView'
 import { EvidenceView } from '../EvidenceView'
 import { OverviewView } from '../OverviewView'
@@ -16,7 +15,6 @@ export function DetailPage({
   activeTab,
   onTabChange,
   onUpdateDataset,
-  onDeleteKnowledge,
 }: {
   item: DatasetItem
   activeTab: DatasetDetailTab
@@ -53,7 +51,13 @@ export function DetailPage({
                 }))}
               />
             )}
-            {activeTab === 'evidence' && <EvidenceView key={item.id} item={item} onOpenQuality={() => onTabChange('quality')} />}
+            {activeTab === 'evidence' && (
+              <EvidenceView
+                key={item.id}
+                item={item}
+                onOpenQuality={() => onTabChange('quality')}
+              />
+            )}
             {activeTab === 'quality' && <QualityView item={item} />}
             {activeTab === 'operations' && <OperationsView item={item} />}
             {activeTab === 'settings' && <SettingsView item={item} />}

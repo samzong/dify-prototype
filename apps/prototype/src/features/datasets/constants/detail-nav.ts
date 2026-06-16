@@ -59,11 +59,11 @@ export const pageMeta: Record<DatasetDetailTab, { title: string; description: st
   },
   documents: {
     title: 'Documents',
-    description: 'Review document assets, parser status, index inclusion, and evidence use.',
+    description: 'Browse knowledge assets, inspect indexed content, and search across the knowledge base.',
   },
   evidence: {
     title: 'Evidence',
-    description: 'Test whether retrieved evidence is enough to support an answer.',
+    description: 'Run research tasks and quick retrieval tests to validate answers and evidence coverage.',
   },
   quality: {
     title: 'Quality',

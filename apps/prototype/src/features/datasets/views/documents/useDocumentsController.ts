@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { BulkOperationProgress, DocumentCompilationJob, ParseArtifact } from '../../api-types'
+import type { BulkOperationProgress, DocumentCompilationJob, KnowledgeFsFindResponse, ParseArtifact } from '../../api-types'
 import { MockServiceError } from '../../api-types'
 import {
   documentIndexStatusLabels,
@@ -18,6 +18,7 @@ import {
 import { resolveKnowledgeSpaceId } from '../../fixtures/knowledge-space-bridge'
 import {
   cancelJob,
+  findFs,
   getBulkJob,
   getJob,
   getParseArtifact,
@@ -94,6 +95,9 @@ export function useDocumentsController(
   const [artifactError, setArtifactError] = useState<string | null>(null)
   const [cancelingJob, setCancelingJob] = useState(false)
   const [toast, setToast] = useState('')
+  const [knowledgeSearch, setKnowledgeSearch] = useState('')
+  const [knowledgeSearchResults, setKnowledgeSearchResults] = useState<KnowledgeFsFindResponse | null>(null)
+  const [knowledgeSearchLoading, setKnowledgeSearchLoading] = useState(false)
   const pollRef = useRef(0)
 
   const commitDocuments = useCallback((next: DatasetDocumentRow[]) => {
@@ -411,6 +415,24 @@ export function useDocumentsController(
     return 'Included in published projection and evidence tests.'
   }
 
+  const runKnowledgeSearch = async () => {
+    const query = knowledgeSearch.trim()
+    if (!query)
+      return
+
+    setKnowledgeSearchLoading(true)
+    try {
+      setKnowledgeSearchResults(await findFs(spaceId, '/knowledge', { nameContains: query }))
+    }
+    catch (error) {
+      showToast(mockErrorMessage(error))
+      setKnowledgeSearchResults(null)
+    }
+    finally {
+      setKnowledgeSearchLoading(false)
+    }
+  }
+
   return {
     documents,
     loadingDocuments,
@@ -476,6 +498,11 @@ export function useDocumentsController(
     openBulkDrawer,
     exclusionReason,
     refreshDocuments,
+    knowledgeSearch,
+    setKnowledgeSearch,
+    knowledgeSearchResults,
+    knowledgeSearchLoading,
+    runKnowledgeSearch,
   }
 }
 

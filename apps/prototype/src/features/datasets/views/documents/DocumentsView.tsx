@@ -2,12 +2,14 @@ import { useMemo } from 'react'
 import { transitionToSideDrawer } from '../../components/side-drawer'
 import { ActionToast } from '../../components/panel'
 import type { DatasetDocumentRow, DatasetItem } from '../../fixtures/items'
+import { resolveKnowledgeSpaceId } from '../../fixtures/knowledge-space-bridge'
 import { DocumentsDialogs } from './documents-dialogs'
 import {
   BulkJobDrawer,
   DocumentArtifactDrawer,
   DocumentJobDrawer,
 } from './documents-drawers'
+import { DocumentInspectorDrawer } from './document-inspector-drawer'
 import { DocumentsTablePanel } from './documents-table'
 import { buildSourceAssetOptions, metadataFields } from './documents-helpers'
 import { useDocumentsController } from './useDocumentsController'
@@ -19,6 +21,7 @@ export function DocumentsView({
   item: DatasetItem
   onDocumentsChange?: (documents: DatasetDocumentRow[]) => void
 }) {
+  const spaceId = resolveKnowledgeSpaceId(item.id)
   const controller = useDocumentsController(item, onDocumentsChange)
   const availableSources = useMemo(
     () => item.sources.filter(source => source.status !== 'Disabled'),
@@ -54,6 +57,16 @@ export function DocumentsView({
     ? !!selectedSource && !!controller.addSourceAsset
     : !!controller.addFileName.trim()
 
+  const openInspector = (doc: DatasetDocumentRow) => {
+    controller.setDetailDoc(doc)
+  }
+
+  const openKnowledgeResult = (name: string) => {
+    const doc = controller.documents.find(entry => entry.name === name)
+    if (doc)
+      openInspector(doc)
+  }
+
   return (
     <div className="space-y-4 pr-6">
       {controller.loadingDocuments && (
@@ -87,10 +100,19 @@ export function DocumentsView({
         handleReindex={controller.handleReindex}
         setRenameDoc={controller.setRenameDoc}
         setRenameValue={controller.setRenameValue}
-        setDetailDoc={controller.setDetailDoc}
+        setDetailDoc={(doc) => {
+          if (doc)
+            openInspector(doc)
+        }}
         showToast={controller.showToast}
-        onViewJob={controller.openJobDrawer}
-        onViewArtifact={controller.openArtifactDrawer}
+        onViewJob={doc => void controller.openJobDrawer(doc)}
+        onViewArtifact={doc => void controller.openArtifactDrawer(doc)}
+        knowledgeSearch={controller.knowledgeSearch}
+        setKnowledgeSearch={controller.setKnowledgeSearch}
+        knowledgeSearchResults={controller.knowledgeSearchResults}
+        knowledgeSearchLoading={controller.knowledgeSearchLoading}
+        onKnowledgeSearch={() => void controller.runKnowledgeSearch()}
+        onOpenKnowledgeResult={openKnowledgeResult}
       />
       <DocumentsDialogs
         addOpen={controller.addOpen}
@@ -99,8 +121,6 @@ export function DocumentsView({
         setMetadataOpen={controller.setMetadataOpen}
         renameDoc={controller.renameDoc}
         setRenameDoc={controller.setRenameDoc}
-        detailDoc={controller.detailDoc}
-        setDetailDoc={controller.setDetailDoc}
         renameValue={controller.renameValue}
         setRenameValue={controller.setRenameValue}
         addMode={controller.addMode}
@@ -123,28 +143,33 @@ export function DocumentsView({
           void controller.handleAddDocument({ filename, sourceId: controller.addSourceId || undefined })
         }}
         handleRename={controller.handleRename}
-        handleReindex={controller.handleReindex}
         metadataFields={metadataFields}
         showToast={controller.showToast}
+      />
+      <DocumentInspectorDrawer
+        open={!!controller.detailDoc}
+        document={controller.detailDoc}
+        spaceId={spaceId}
         exclusionReason={controller.exclusionReason}
-        onViewJob={controller.detailDoc
-          ? () => {
-              const doc = controller.detailDoc!
-              transitionToSideDrawer(
-                () => controller.setDetailDoc(null),
-                () => void controller.openJobDrawer(doc),
-              )
-            }
-          : undefined}
-        onViewArtifact={controller.detailDoc
-          ? () => {
-              const doc = controller.detailDoc!
-              transitionToSideDrawer(
-                () => controller.setDetailDoc(null),
-                () => void controller.openArtifactDrawer(doc),
-              )
-            }
-          : undefined}
+        onClose={() => controller.setDetailDoc(null)}
+        onReindex={doc => controller.handleReindex([doc.id])}
+        onRename={(doc) => {
+          controller.setRenameDoc(doc)
+          controller.setRenameValue(doc.name)
+          controller.setDetailDoc(null)
+        }}
+        onViewJob={(doc) => {
+          transitionToSideDrawer(
+            () => controller.setDetailDoc(null),
+            () => void controller.openJobDrawer(doc),
+          )
+        }}
+        onViewArtifact={(doc) => {
+          transitionToSideDrawer(
+            () => controller.setDetailDoc(null),
+            () => void controller.openArtifactDrawer(doc),
+          )
+        }}
       />
       <DocumentJobDrawer
         open={controller.jobDrawerOpen}

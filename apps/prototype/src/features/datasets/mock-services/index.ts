@@ -72,9 +72,11 @@ export {
 export {
   planResearchTask,
   createResearchTask,
+  listResearchTasksBySpace,
   getResearchTask,
   cancelResearchTask,
   listResearchPartials,
+  listResearchEvents,
   streamResearchEvents,
   runResearchTask,
   simulateResearchTaskStages,
@@ -84,7 +86,18 @@ export {
   getFsTree,
   getFsList,
   grepFs,
+  findFs,
   catFs,
   statFs,
   diffFs,
+  openNodeFs,
+  writeFs,
+  appendFs,
 } from './fs'
+
+export {
+  traverseGraph,
+  materializeTopicView,
+  extractEntities,
+  materializeCommunities,
+} from './graph'

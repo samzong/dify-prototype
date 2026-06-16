@@ -1,15 +1,107 @@
 import type {
   KnowledgeFsCatResponse,
   KnowledgeFsDiffResponse,
+  KnowledgeFsFindResponse,
   KnowledgeFsGrepResponse,
   KnowledgeFsListResponse,
+  KnowledgeFsOpenNodeResponse,
   KnowledgeFsStatResponse,
   KnowledgeFsTreeResponse,
+  KnowledgeFsWriteResponse,
 } from '../api-types'
 import { MockServiceError } from '../api-types'
 import { PROTOTYPE_DOCUMENT_IDS } from '../fixtures/scenarios'
 import { delay } from './helpers'
 import { getKnowledgeMockStore } from './store'
+
+const DEFAULT_ROOT = '/knowledge'
+
+export async function findFs(
+  spaceId: string,
+  path: string,
+  options?: { nameContains?: string; limit?: number },
+): Promise<KnowledgeFsFindResponse> {
+  await delay(150)
+  assertSpace(spaceId)
+  const tree = await getFsTree(spaceId, path)
+  const needle = options?.nameContains?.toLowerCase() ?? ''
+  const items = flattenTree(tree.root).filter((entry) => {
+    if (entry.kind !== 'file')
+      return false
+    return !needle || entry.name.toLowerCase().includes(needle)
+  }).slice(0, options?.limit ?? 25).map(entry => ({
+    kind: 'resource' as const,
+    name: entry.name,
+    path: entry.path,
+    resourceType: 'document' as const,
+    targetId: entry.path.includes('refund-policy') ? PROTOTYPE_DOCUMENT_IDS.refundPolicy : undefined,
+    metadata: {},
+  }))
+
+  return { path, items, truncated: false }
+}
+
+export async function openNodeFs(spaceId: string, nodeId: string): Promise<KnowledgeFsOpenNodeResponse> {
+  await delay(130)
+  assertSpace(spaceId)
+
+  return {
+    node: {
+      id: nodeId,
+      knowledgeSpaceId: spaceId,
+      documentAssetId: PROTOTYPE_DOCUMENT_IDS.refundPolicy,
+      parseArtifactId: 'p7000001-0001-4001-8001-000000000001',
+      artifactHash: 'f'.repeat(64),
+      kind: 'chunk',
+      text: 'Enterprise plans can request refunds within 14 days when no production workspace has been activated.',
+      startOffset: 120,
+      endOffset: 220,
+      sourceLocation: { startOffset: 120, endOffset: 220, sectionPath: ['Refund policy'] },
+      updatedAt: new Date().toISOString(),
+    },
+    citation: {
+      documentAssetId: PROTOTYPE_DOCUMENT_IDS.refundPolicy,
+      parseArtifactId: 'p7000001-0001-4001-8001-000000000001',
+      artifactHash: 'f'.repeat(64),
+      startOffset: 120,
+      endOffset: 220,
+      sectionPath: ['Refund policy'],
+    },
+  }
+}
+
+export async function writeFs(spaceId: string, path: string, content: string): Promise<KnowledgeFsWriteResponse> {
+  await delay(180)
+  assertSpace(spaceId)
+  if (!path.startsWith(DEFAULT_ROOT))
+    throw new MockServiceError(400, 'Write path must stay under /knowledge')
+
+  return {
+    path,
+    sizeBytes: content.length,
+    modifiedAt: new Date().toISOString(),
+  }
+}
+
+export async function appendFs(spaceId: string, path: string, content: string): Promise<KnowledgeFsWriteResponse> {
+  await delay(160)
+  const existing = await catFs(spaceId, path)
+  return writeFs(spaceId, path, `${existing.content}\n${content}`)
+}
+
+function flattenTree(node?: KnowledgeFsTreeResponse['root']) {
+  if (!node)
+    return [] as { name: string; path: string; kind: 'directory' | 'file' }[]
+
+  const entries = [{ name: node.name, path: node.path, kind: node.kind === 'directory' ? 'directory' as const : 'file' as const }]
+  for (const child of node.children ?? []) {
+    if (child.kind === 'file')
+      entries.push({ name: child.name, path: child.path, kind: 'file' })
+    else
+      entries.push(...flattenTree(child))
+  }
+  return entries
+}
 
 export async function getFsTree(spaceId: string, path: string): Promise<KnowledgeFsTreeResponse> {
   await delay(140)
@@ -34,6 +126,12 @@ export async function getFsTree(spaceId: string, path: string): Promise<Knowledg
               kind: 'file',
               sizeBytes: 18432,
               modifiedAt: new Date().toISOString(),
+            },
+            {
+              name: 'pricing-legacy.html',
+              path: `${path}/documents/pricing-legacy.html`,
+              kind: 'file',
+              sizeBytes: 9216,
             },
             {
               name: 'sso-enterprise.pdf',

@@ -233,6 +233,16 @@ function buildAttentionItems(
     })
   }
 
+  const graphStale = status.index.summaries.graph.stale
+  if (graphStale > 0) {
+    items.push({
+      text: `Graph projection has ${graphStale} stale slice${graphStale === 1 ? '' : 's'} — review entity materialization in Evidence.`,
+      tone: 'warn',
+      tab: 'evidence',
+      actionLabel: 'Evidence',
+    })
+  }
+
   return items
 }
 

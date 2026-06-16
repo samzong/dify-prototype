@@ -21,6 +21,17 @@ export const PROTOTYPE_TRACE_IDS = {
   conflictPricing: '018f0d60-7a49-7cc2-9c1b-5b36f18f1030',
 } as const
 
+export const PROTOTYPE_ENTITY_IDS = {
+  enterpriseRefundPolicy: 'e7000001-0001-4001-8001-000000000001',
+  enterpriseSso: 'e7000002-0002-4002-8002-000000000002',
+  enterprisePricing: 'e7000003-0003-4003-8003-000000000003',
+} as const
+
+export const PROTOTYPE_RESEARCH_IDS = {
+  handbookCompleted: 'r9000001-0001-4001-8001-000000000001',
+  handbookFailed: 'r9000002-0002-4002-8002-000000000002',
+} as const
+
 export const PROTOTYPE_JOB_IDS = {
   refundReindex: 'job-refund-reindex-001',
   bulkUpload: 'bulk-upload-001',
