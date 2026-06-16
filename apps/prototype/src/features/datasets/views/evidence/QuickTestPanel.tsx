@@ -1,14 +1,14 @@
 import { Button } from '@langgenius/dify-ui/button'
 import { Textarea } from '@langgenius/dify-ui/textarea'
-import { RiMicroscopeLine, RiPlayLine } from '@remixicon/react'
+import { RiPlayLine } from '@remixicon/react'
 import { StatusBadge } from '../../components/badges'
 import {
   evidenceStateLabels,
   evidenceStateTones,
-  quickTestDepthOptions,
-  type QuickTestDepthOption,
+  retrievalDepthOptions,
 } from '../../fixtures/helpers'
-import { ActionToast, Panel, SegmentedMode } from '../../components/panel'
+import { ActionToast, EmptyPanel, Panel, SegmentedMode } from '../../components/panel'
+import { EvidenceRecordsPanel } from './evidence-records-panel'
 import {
   AnswerPreviewPanel,
   ConflictsPanel,
@@ -16,22 +16,25 @@ import {
   MissingEvidencePanel,
   StreamStepsPanel,
 } from './evidence-result-panels'
+import { formatResearchStage, ResearchTaskDetailContent, researchStageTone } from './evidence-research-panels'
 import { AnswerTraceDrawer } from './evidence-trace-drawer'
 import { useEvidenceController } from './useEvidenceController'
-import type { DatasetItem } from '../../fixtures/items'
+import type { DatasetItem, RetrievalDepthOption } from '../../fixtures/items'
 
 export function QuickTestPanel({
   item,
+  initialMode,
+  initialQuery,
   onOpenQuality,
-  onSwitchToResearch,
   onViewGraph,
 }: {
   item: DatasetItem
+  initialMode?: RetrievalDepthOption
+  initialQuery?: string
   onOpenQuality?: () => void
-  onSwitchToResearch?: (query: string) => void
   onViewGraph?: () => void
 }) {
-  const controller = useEvidenceController(item)
+  const controller = useEvidenceController(item, { initialMode, initialQuery })
   const {
     mode,
     setMode,
@@ -52,123 +55,132 @@ export function QuickTestPanel({
     missingItems,
     conflictItems,
     documents,
-    showToast,
-    runEvidence,
+    records,
+    recordsLoading,
+    selectedRecordId,
+    resultKind,
+    researchTask,
+    researchEvents,
+    researchPartials,
+    runningResearchId,
+    canceling,
+    canCancelResearch,
+    run,
+    selectRecord,
     openTraceDrawer,
     createBadCaseFromTrace,
     createBadCaseFromMissing,
     dismissMissingEvidence,
     dismissedMissingKeys,
+    cancelResearch,
   } = controller
 
-  const hasApiResults = evidenceItems.length > 0 || missingItems.length > 0 || conflictItems.length > 0
+  const hasQueryResults = evidenceItems.length > 0 || missingItems.length > 0 || conflictItems.length > 0 || !!answerText || streamSteps.length > 0
+  const resultBadge = resultKind === 'research' && researchTask
+    ? formatResearchStage(researchTask.stage)
+    : evidenceStateLabels[bundleState]
+  const resultBadgeTone = resultKind === 'research' && researchTask
+    ? researchStageTone(researchTask.stage)
+    : evidenceStateTones[bundleState]
 
   return (
     <>
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-[0.8fr_1.2fr]">
-        <Panel title="Quick retrieval test" badge={mode}>
+        <Panel title="Retrieval test" badge={mode}>
           <div className="space-y-3">
             <Textarea value={query} onValueChange={setQuery} className="min-h-24" aria-label="Retrieval query" />
             <div>
               <div className="mb-1 system-xs-medium text-text-tertiary">Retrieval depth</div>
               <SegmentedMode
-                options={quickTestDepthOptions}
-                value={(mode === 'Research' ? 'Deep' : mode) as QuickTestDepthOption}
+                options={retrievalDepthOptions}
+                value={mode}
                 onChange={setMode}
               />
             </div>
-            <Button variant="primary" size="small" className="w-full" loading={running} onClick={() => void runEvidence()}>
+            <Button variant="primary" size="small" className="w-full" loading={running} onClick={() => void run()}>
               <RiPlayLine className="size-4" />
-              Run
+              {mode === 'Research' ? 'Start research' : 'Run'}
             </Button>
-            {onSwitchToResearch && (
-              <Button variant="secondary" size="small" className="w-full" onClick={() => onSwitchToResearch(query)}>
-                <RiMicroscopeLine className="size-4" />
-                Investigate with Research
-              </Button>
-            )}
             {runError && <p className="system-xs-regular text-util-colors-red-red-500">{runError}</p>}
+            <EvidenceRecordsPanel
+              records={records}
+              loading={recordsLoading}
+              selectedRecordId={selectedRecordId}
+              onSelect={record => void selectRecord(record)}
+            />
           </div>
         </Panel>
 
-        <Panel title="Retrieval result" badge={evidenceStateLabels[bundleState]} badgeTone={evidenceStateTones[bundleState]}>
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              <StatusBadge label={evidenceStateLabels[bundleState]} tone={evidenceStateTones[bundleState]} />
-              <StatusBadge label={`Depth: ${mode === 'Research' ? 'Deep' : mode}`} tone="neutral" />
-              <StatusBadge label={freshness} tone="info" />
-            </div>
+        <Panel title="Retrieval result" badge={resultBadge} badgeTone={resultBadgeTone}>
+          {resultKind === 'research'
+            ? (
+                <ResearchTaskDetailContent
+                  task={researchTask}
+                  events={researchEvents}
+                  partials={researchPartials}
+                  running={runningResearchId !== null}
+                  canCancel={canCancelResearch}
+                  canceling={canceling}
+                  onCancel={() => void cancelResearch()}
+                />
+              )
+            : (
+                <div className="space-y-3">
+                  {!traceId && !hasQueryResults && (
+                    <EmptyPanel text="Run a retrieval test or select a record to inspect results." />
+                  )}
 
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-2">
-              <span className="system-xs-medium text-text-tertiary">Trace ID</span>
-              <code className="min-w-0 truncate system-xs-regular text-text-secondary">{traceId}</code>
-              <Button variant="secondary" size="small" onClick={() => void createBadCaseFromTrace()}>Create bad case</Button>
-            </div>
-
-            <StreamStepsPanel steps={streamSteps} running={running} />
-            <AnswerPreviewPanel text={answerText} />
-
-            {hasApiResults
-              ? (
-                  <>
-                    <EvidenceItemsPanel items={evidenceItems} documents={documents} />
-                    <ConflictsPanel conflicts={conflictItems} />
-                    <MissingEvidencePanel
-                      items={missingItems}
-                      onDismiss={dismissMissingEvidence}
-                      onCreateBadCase={createBadCaseFromMissing}
-                    />
-                  </>
-                )
-              : (
-                  <>
-                    {item.evidenceItems.map(itemRow => (
-                      <article key={`${itemRow.source}-${itemRow.quote}`} className="rounded-lg border border-divider-subtle bg-background-default-subtle p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="system-sm-semibold text-text-secondary">{itemRow.source}</span>
-                          <div className="flex flex-wrap gap-1">
-                            <StatusBadge label={`score ${itemRow.score}`} tone="info" />
-                            <StatusBadge label={`retrieval ${itemRow.retrievalScore}`} tone="neutral" />
-                            <StatusBadge label={`rerank ${itemRow.rerankScore}`} tone="neutral" />
-                          </div>
-                        </div>
-                        <p className="mt-2 system-sm-regular text-text-secondary">{itemRow.quote}</p>
-                        <p className="mt-2 system-xs-regular text-text-tertiary">Freshness: {itemRow.freshness}</p>
-                      </article>
-                    ))}
-                    {!!item.missingEvidence.length && (
-                      <div className="rounded-lg border border-divider-subtle bg-background-default-subtle p-3">
-                        <div className="system-xs-semibold-uppercase text-text-tertiary">Missing evidence</div>
-                        <ul className="mt-2 space-y-1">
-                          {item.missingEvidence.map(entry => (
-                            <li key={entry} className="system-sm-regular text-text-secondary">{entry}</li>
-                          ))}
-                        </ul>
+                  {(traceId || hasQueryResults) && (
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        <StatusBadge label={evidenceStateLabels[bundleState]} tone={evidenceStateTones[bundleState]} />
+                        <StatusBadge label={`Depth: ${mode}`} tone="neutral" />
+                        <StatusBadge label={freshness} tone="info" />
                       </div>
-                    )}
-                  </>
-                )}
 
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button
-                variant="secondary"
-                size="small"
-                onClick={() => void createGoldenQuestionFromQuery(query)}
-              >
-                Create golden question
-              </Button>
-              <Button variant="ghost" size="small" onClick={() => void openTraceDrawer()}>Open answer trace</Button>
-              {onViewGraph && (
-                <Button variant="ghost" size="small" onClick={onViewGraph}>View in graph</Button>
+                      {traceId && (
+                        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-2">
+                          <span className="system-xs-medium text-text-tertiary">Trace ID</span>
+                          <code className="min-w-0 truncate system-xs-regular text-text-secondary">{traceId}</code>
+                          <Button variant="secondary" size="small" onClick={() => void createBadCaseFromTrace()}>Create bad case</Button>
+                        </div>
+                      )}
+
+                      <StreamStepsPanel steps={streamSteps} running={running} />
+                      <AnswerPreviewPanel text={answerText} />
+
+                      {hasQueryResults && (
+                        <>
+                          <EvidenceItemsPanel items={evidenceItems} documents={documents} />
+                          <ConflictsPanel conflicts={conflictItems} />
+                          <MissingEvidencePanel
+                            items={missingItems}
+                            onDismiss={dismissMissingEvidence}
+                            onCreateBadCase={createBadCaseFromMissing}
+                          />
+                        </>
+                      )}
+
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Button
+                          variant="secondary"
+                          size="small"
+                          onClick={() => void createGoldenQuestionFromQuery(query)}
+                        >
+                          Create golden question
+                        </Button>
+                        <Button variant="ghost" size="small" onClick={() => void openTraceDrawer()}>Open answer trace</Button>
+                        {onViewGraph && (
+                          <Button variant="ghost" size="small" onClick={onViewGraph}>View in graph</Button>
+                        )}
+                        {onOpenQuality && (
+                          <Button variant="ghost" size="small" onClick={onOpenQuality}>Open Quality</Button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
-              {onSwitchToResearch && (
-                <Button variant="ghost" size="small" onClick={() => onSwitchToResearch(query)}>Investigate with Research</Button>
-              )}
-              {onOpenQuality && (
-                <Button variant="ghost" size="small" onClick={onOpenQuality}>Open Quality</Button>
-              )}
-            </div>
-          </div>
         </Panel>
       </div>
 

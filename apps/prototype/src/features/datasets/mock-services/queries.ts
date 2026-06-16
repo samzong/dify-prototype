@@ -15,6 +15,16 @@ export type SpaceConflictListItem = {
   severity: ConflictSeverity
   withNodeId?: Uuid
 }
+
+export type EvidenceRecordItem = {
+  id: string
+  kind: 'query' | 'research'
+  query: string
+  mode: 'fast' | 'deep' | 'research'
+  statusLabel: string
+  meta: string
+  createdAt: string
+}
 import { MockServiceError } from '../api-types'
 import { PROTOTYPE_TRACE_IDS } from '../fixtures/scenarios'
 import { delay, emitStream } from './helpers'
@@ -43,6 +53,52 @@ export async function getQueryConflicts(traceId: string) {
 export async function getQueryMissing(traceId: string) {
   await delay(120)
   return getVirtualTree(traceId, 'missing')
+}
+
+export async function listEvidenceRecords(spaceId: string, options?: { limit?: number }) {
+  await delay(140)
+  const store = getKnowledgeMockStore()
+  const limit = options?.limit ?? 20
+  const items: EvidenceRecordItem[] = []
+
+  for (const trace of Object.values(store.traces)) {
+    if (trace.knowledgeSpaceId !== spaceId)
+      continue
+
+    const bundle = trace.evidenceBundleId
+      ? store.evidenceBundles[trace.evidenceBundleId]
+      : Object.values(store.evidenceBundles).find(entry => entry.traceId === trace.id)
+
+    items.push({
+      id: trace.id,
+      kind: 'query',
+      query: trace.query,
+      mode: trace.mode === 'research' ? 'research' : trace.mode === 'deep' ? 'deep' : 'fast',
+      statusLabel: bundle?.state ?? 'unknown',
+      meta: formatTraceRecordMeta(trace),
+      createdAt: trace.createdAt,
+    })
+  }
+
+  for (const task of Object.values(store.researchTasks)) {
+    if (task.knowledgeSpaceId !== spaceId)
+      continue
+
+    items.push({
+      id: task.id,
+      kind: 'research',
+      query: task.query,
+      mode: 'research',
+      statusLabel: task.stage,
+      meta: formatResearchRecordMeta(task.stage),
+      createdAt: new Date(task.createdAt).toISOString(),
+    })
+  }
+
+  return items
+    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))
+    .slice(0, limit)
+    .map(entry => structuredClone(entry))
 }
 
 export async function listSpaceConflicts(spaceId: string) {
@@ -143,6 +199,28 @@ export async function runQuery(
   })
 
   return { trace, bundle }
+}
+
+function formatTraceRecordMeta(trace: AnswerTrace) {
+  const totalMs = trace.steps.reduce((sum, step) => {
+    if (!step.endedAt)
+      return sum
+    const start = Date.parse(step.startedAt)
+    const end = Date.parse(step.endedAt)
+    if (Number.isNaN(start) || Number.isNaN(end))
+      return sum
+    return sum + Math.abs(end - start)
+  }, 0)
+
+  const latencyLabel = totalMs < 1000
+    ? `${totalMs} ms`
+    : `${(totalMs / 1000).toFixed(1)} s`
+
+  return `${trace.steps.length} steps · ${latencyLabel}`
+}
+
+function formatResearchRecordMeta(stage: string) {
+  return stage.replace(/-/g, ' ')
 }
 
 function pickTraceId(scenario: ReturnType<typeof getActiveKnowledgeScenario>, request: QueryRunRequest) {

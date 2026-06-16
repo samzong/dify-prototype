@@ -1,17 +1,22 @@
 import { cn } from '@langgenius/dify-ui/cn'
 import type { DatasetDetailTab, DatasetItem } from '../../fixtures/items'
 import type { NavItem } from '../../constants/detail-nav'
+import { DatasetApiAccessPopover } from './dataset-api-access-popover'
 
 export function DatasetDetailSidebar({
   item,
   navItems,
   activeTab,
   onTabChange,
+  onOpenDevelop,
+  onUpdateItem,
 }: {
   item: DatasetItem
   navItems: NavItem[]
   activeTab: DatasetDetailTab
   onTabChange: (tab: DatasetDetailTab) => void
+  onOpenDevelop: () => void
+  onUpdateItem: (updater: (current: DatasetItem) => DatasetItem) => void
 }) {
   return (
     <aside className="flex w-[216px] shrink-0 flex-col border-r border-divider-burn bg-background-default-subtle">
@@ -61,7 +66,12 @@ export function DatasetDetailSidebar({
           />
         ))}
       </nav>
-      <DatasetSidebarExtra item={item} />
+      <DatasetSidebarExtra
+        item={item}
+        activeTab={activeTab}
+        onOpenDevelop={onOpenDevelop}
+        onUpdateItem={onUpdateItem}
+      />
     </aside>
   )
 }
@@ -94,7 +104,19 @@ export function DatasetNavLink({
   )
 }
 
-export function DatasetSidebarExtra({ item }: { item: DatasetItem }) {
+export function DatasetSidebarExtra({
+  item,
+  activeTab,
+  onOpenDevelop,
+  onUpdateItem,
+}: {
+  item: DatasetItem
+  activeTab: DatasetDetailTab
+  onOpenDevelop: () => void
+  onUpdateItem: (updater: (current: DatasetItem) => DatasetItem) => void
+}) {
+  const developActive = activeTab === 'develop'
+
   return (
     <>
       <div className="flex items-center gap-x-0.5 p-2 pb-0">
@@ -108,12 +130,21 @@ export function DatasetSidebarExtra({ item }: { item: DatasetItem }) {
           <div className="system-2xs-medium-uppercase text-text-tertiary">Related apps</div>
         </div>
       </div>
-      <div className="p-3 pt-2">
-        <div className="flex h-8 items-center gap-2 rounded-lg border border-components-panel-border px-3">
-          <span className="i-custom-vender-solid-development-api-connection-mod size-4 shrink-0 text-text-secondary" />
-          <div className="grow system-sm-medium text-text-secondary">API Access</div>
-          <span className={cn('size-2 rounded-full', item.apiEnabled ? 'bg-util-colors-green-green-500' : 'bg-util-colors-warning-warning-500')} />
-        </div>
+      <div className="space-y-2 p-3 pt-2">
+        <DatasetApiAccessPopover item={item} onUpdateItem={onUpdateItem} />
+        <button
+          type="button"
+          onClick={onOpenDevelop}
+          className={cn(
+            'flex h-8 w-full items-center gap-2 rounded-lg border px-3 text-left',
+            developActive
+              ? 'border-components-panel-border bg-components-menu-item-bg-active'
+              : 'border-components-panel-border hover:bg-components-menu-item-bg-hover',
+          )}
+        >
+          <span className="i-ri-robot-2-line size-4 shrink-0 text-text-secondary" />
+          <div className="grow system-sm-medium text-text-secondary">Agent Access</div>
+        </button>
       </div>
     </>
   )

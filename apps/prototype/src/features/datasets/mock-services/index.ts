@@ -6,7 +6,6 @@ export * as documentsMock from './documents'
 export * as jobsMock from './jobs'
 export * as queriesMock from './queries'
 export * as qualityMock from './quality'
-export * as operationsMock from './operations'
 export * as researchMock from './research'
 export * as fsMock from './fs'
 
@@ -42,11 +41,12 @@ export {
   getQueryEvidence,
   getQueryConflicts,
   getQueryMissing,
+  listEvidenceRecords,
   listSpaceConflicts,
   runQuery,
 } from './queries'
 
-export type { SpaceConflictListItem } from './queries'
+export type { EvidenceRecordItem, SpaceConflictListItem } from './queries'
 
 export {
   listGoldenQuestions,
@@ -58,16 +58,6 @@ export {
   getRetentionPolicy,
   patchRetentionPolicy,
 } from './quality'
-
-export {
-  runFsck,
-  getGcDryRun,
-  executeGc,
-  listActiveLeases,
-  releaseLease,
-  listStagedCommits,
-  triggerProjectionRebuild,
-} from './operations'
 
 export {
   planResearchTask,

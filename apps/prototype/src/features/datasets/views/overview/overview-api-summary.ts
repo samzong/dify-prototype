@@ -181,28 +181,27 @@ function buildAttentionItems(
   const items: OverviewAttentionItem[] = []
 
   if (!status.storage.healthy)
-    items.push({ text: 'Storage provider is degraded.', tone: 'bad', tab: 'operations', actionLabel: 'Operations' })
+    items.push({ text: 'Storage provider is degraded.', tone: 'bad', tab: 'settings', actionLabel: 'Settings' })
 
   if (counts.stale > 0 || counts.building > 0) {
     const parts = [
       counts.stale > 0 ? `${counts.stale} stale` : null,
       counts.building > 0 ? `${counts.building} building` : null,
     ].filter(Boolean).join(', ')
-    const tab = counts.building > 0 ? 'documents' : 'operations'
     items.push({
       text: `Projection index: ${parts} slice${counts.stale + counts.building === 1 ? '' : 's'}.`,
       tone: counts.stale > 0 ? 'warn' : 'info',
-      tab,
-      actionLabel: tab === 'documents' ? 'Documents' : 'Operations',
+      tab: 'documents',
+      actionLabel: 'Documents',
     })
   }
 
   if (status.activeLeases.count > 0) {
     items.push({
-      text: `${status.activeLeases.count} active lease${status.activeLeases.count === 1 ? '' : 's'} — review before GC or rebuild.`,
+      text: `${status.activeLeases.count} active lease${status.activeLeases.count === 1 ? '' : 's'} may block background cleanup.`,
       tone: 'warn',
-      tab: 'operations',
-      actionLabel: 'Operations',
+      tab: 'settings',
+      actionLabel: 'Settings',
     })
   }
 
@@ -210,8 +209,8 @@ function buildAttentionItems(
     items.push({
       text: `${status.failedCommits.count} failed staged commit${status.failedCommits.count === 1 ? '' : 's'} waiting in queue.`,
       tone: 'warn',
-      tab: 'operations',
-      actionLabel: 'Operations',
+      tab: 'documents',
+      actionLabel: 'Documents',
     })
   }
 
@@ -219,8 +218,8 @@ function buildAttentionItems(
     items.push({
       text: `${stats.commits.failedTerminal} terminal commit failure${stats.commits.failedTerminal === 1 ? '' : 's'} in the recent window.`,
       tone: 'bad',
-      tab: 'operations',
-      actionLabel: 'Operations',
+      tab: 'documents',
+      actionLabel: 'Documents',
     })
   }
 
@@ -228,8 +227,8 @@ function buildAttentionItems(
     items.push({
       text: stats.metrics.reason ?? 'Evidence cache is unavailable.',
       tone: 'warn',
-      tab: 'operations',
-      actionLabel: 'Operations',
+      tab: 'evidence',
+      actionLabel: 'Evidence',
     })
   }
 

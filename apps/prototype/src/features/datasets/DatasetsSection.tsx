@@ -82,6 +82,7 @@ export function DatasetsSection({
       key={item.id}
       item={item}
       activeTab={pathToDetailTab(screen.tab)}
+      tabPath={screen.tab}
       onTabChange={tab => onTabChange(item.id, tab)}
       onUpdateDataset={onUpdateDataset}
       onDeleteKnowledge={onDeleteDataset}

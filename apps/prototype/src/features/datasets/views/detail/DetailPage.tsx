@@ -1,9 +1,10 @@
 import type { DatasetDetailTab, DatasetItem } from '../../fixtures/items'
+import type { DatasetDetailTabPath } from '../../../../routing/dataset-routes'
 import { pageMeta, detailNavItems } from '../../constants/detail-nav'
+import { DevelopView } from '../develop/DevelopView'
 import { DocumentsView } from '../documents/DocumentsView'
 import { EvidenceView } from '../EvidenceView'
 import { OverviewView } from '../OverviewView'
-import { OperationsView } from '../operations/OperationsView'
 import { PipelineView } from '../PipelineView'
 import { QualityView } from '../QualityView'
 import { SettingsView } from '../settings/SettingsView'
@@ -13,11 +14,13 @@ import { DatasetDetailSidebar, PageHeader } from './detail-sidebar'
 export function DetailPage({
   item,
   activeTab,
+  tabPath,
   onTabChange,
   onUpdateDataset,
 }: {
   item: DatasetItem
   activeTab: DatasetDetailTab
+  tabPath?: DatasetDetailTabPath
   onTabChange: (tab: DatasetDetailTab) => void
   onUpdateDataset: (id: string, updater: (item: DatasetItem) => DatasetItem) => void
   onDeleteKnowledge?: (spaceId: string) => Promise<void>
@@ -27,7 +30,14 @@ export function DetailPage({
 
   return (
     <div className="flex h-0 min-h-0 shrink-0 grow overflow-hidden bg-background-body">
-      <DatasetDetailSidebar item={item} navItems={navItems} activeTab={activeTab} onTabChange={onTabChange} />
+      <DatasetDetailSidebar
+        item={item}
+        navItems={navItems}
+        activeTab={activeTab}
+        onTabChange={onTabChange}
+        onOpenDevelop={() => onTabChange('develop')}
+        onUpdateItem={updater => onUpdateDataset(item.id, updater)}
+      />
       <div className="relative min-w-0 flex-1 overflow-y-auto">
         <div className="flex min-h-full flex-col py-3 pl-6">
           <PageHeader title={meta.title} description={meta.description} />
@@ -55,12 +65,13 @@ export function DetailPage({
               <EvidenceView
                 key={item.id}
                 item={item}
+                initialMode={tabPath === 'research' ? 'Research' : undefined}
                 onOpenQuality={() => onTabChange('quality')}
               />
             )}
             {activeTab === 'quality' && <QualityView item={item} />}
-            {activeTab === 'operations' && <OperationsView item={item} />}
             {activeTab === 'settings' && <SettingsView item={item} />}
+            {activeTab === 'develop' && <DevelopView item={item} />}
             {activeTab === 'pipeline' && item.runtimeMode === 'rag_pipeline' && <PipelineView item={item} />}
           </div>
         </div>

@@ -5,12 +5,8 @@ import type {
   BulkOperationProgress,
   EvidenceBundle,
   GoldenQuestion,
-  KnowledgeFsLease,
-  KnowledgeFsckReport,
-  KnowledgeFsGcDryRunReport,
   KnowledgeSpace,
   KnowledgeSpaceManifest,
-  KnowledgeSpaceStagedCommit,
   KnowledgeSpaceStats,
   KnowledgeSpaceStatus,
   ParseArtifact,
@@ -51,10 +47,6 @@ export type KnowledgeScenarioBundle = {
   missingTrees: Record<string, QueryEvidenceVirtualTree>
   goldenQuestionsBySpaceId: Record<string, GoldenQuestion[]>
   badCasesBySpaceId: Record<string, ProductionBadCase[]>
-  fsckBySpaceId: Record<string, KnowledgeFsckReport>
-  gcDryRunBySpaceId: Record<string, KnowledgeFsGcDryRunReport>
-  leasesBySpaceId: Record<string, KnowledgeFsLease[]>
-  stagedCommitsBySpaceId: Record<string, KnowledgeSpaceStagedCommit[]>
   retentionPolicies: RetentionPolicy[]
   researchTasks: Record<string, ResearchTaskJob>
 }
@@ -549,100 +541,6 @@ export function createDefaultScenario(): KnowledgeScenarioBundle {
           },
           createdAt: isoAt(86400000 * 3),
           updatedAt: isoAt(86400000),
-        },
-      ],
-    },
-    fsckBySpaceId: {
-      [handbookId]: {
-        knowledgeSpaceId: handbookId,
-        tenantId: PROTOTYPE_TENANT_ID,
-        scannedAt: isoAt(600000),
-        summary: { scanned: 132, info: 2, warning: 3, error: 1, critical: 0, repairable: 2 },
-        issues: [
-          {
-            code: 'STALE_PROJECTION',
-            type: 'stale-projection',
-            message: 'Dense vector projection stale for pricing-legacy.html',
-            severity: 'warning',
-            repairability: 'auto-repairable',
-            target: {
-              type: 'index-projection',
-              documentAssetId: PROTOTYPE_DOCUMENT_IDS.pricingLegacy,
-              virtualPath: '/knowledge/documents/pricing-legacy.html',
-            },
-          },
-          {
-            code: 'PARSER_FAILED',
-            type: 'missing-artifact-object',
-            message: 'Parse artifact missing for escalation-matrix.xlsx',
-            severity: 'error',
-            repairability: 'manual',
-            target: {
-              type: 'artifact-object',
-              documentAssetId: PROTOTYPE_DOCUMENT_IDS.escalationMatrix,
-            },
-          },
-        ],
-      },
-    },
-    gcDryRunBySpaceId: {
-      [handbookId]: {
-        dryRunId: 'gc-dry-run-001',
-        knowledgeSpaceId: handbookId,
-        tenantId: PROTOTYPE_TENANT_ID,
-        generatedAt: isoAt(300000),
-        summary: {
-          candidateCount: 4,
-          estimatedBytes: 524288,
-          stagedObjectCount: 2,
-          failedCommitCount: 1,
-        },
-        candidates: [
-          {
-            candidateType: 'staged-object',
-            count: 2,
-            estimatedBytes: 262144,
-            idempotencyKey: 'gc-staged-001',
-            reason: 'Orphaned staged upload older than retention window',
-            target: { type: 'staged-commit', id: 'sc-001' },
-          },
-        ],
-      },
-    },
-    leasesBySpaceId: {
-      [handbookId]: [
-        {
-          id: 'l1000001-0001-4001-8001-000000000001',
-          knowledgeSpaceId: handbookId,
-          tenantId: PROTOTYPE_TENANT_ID,
-          sessionId: 's2000001-0001-4001-8001-000000000001',
-          leaseType: 'reindex',
-          targetType: 'document-asset',
-          targetId: PROTOTYPE_DOCUMENT_IDS.refundPolicy,
-          targetVersion: 3,
-          virtualPath: '/knowledge/documents/refund-policy.md',
-          status: 'active',
-          acquiredAt: isoAt(120000),
-          heartbeatAt: isoAt(30000),
-          expiresAt: isoAt(-300000),
-          updatedAt: isoAt(30000),
-        },
-      ],
-    },
-    stagedCommitsBySpaceId: {
-      [handbookId]: [
-        {
-          id: 'sc100001-0001-4001-8001-000000000001',
-          knowledgeSpaceId: handbookId,
-          tenantId: PROTOTYPE_TENANT_ID,
-          idempotencyKey: 'upload-refund-v4',
-          operationType: 'document-upload',
-          status: 'projections-built',
-          documentAssetId: PROTOTYPE_DOCUMENT_IDS.refundPolicy,
-          rawObjectKey: `tenants/${PROTOTYPE_TENANT_ID}/raw/refund-policy-v4.md`,
-          sizeBytes: 19456,
-          createdAt: isoAt(600000),
-          updatedAt: isoAt(120000),
         },
       ],
     },
