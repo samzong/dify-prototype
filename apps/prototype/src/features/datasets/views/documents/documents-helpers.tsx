@@ -1,3 +1,4 @@
+import type { BulkOperationProgress, DocumentCompilationJobStage } from '../../api-types'
 import { cn } from '@langgenius/dify-ui/cn'
 import {
   DropdownMenu,
@@ -14,14 +15,54 @@ export const metadataFields = [
   { key: 'language', label: 'Language', value: 'English' },
 ]
 
-export type BulkJob = {
+export type BulkJobView = {
   id: string
-  stage: 'queued' | 'parsed' | 'nodes_generated' | 'projection_built' | 'published'
+  kind: 'bulk' | 'compilation'
+  stage: DocumentCompilationJobStage | BulkOperationProgress['status']
   completed: number
   total: number
+  failedItemIds?: string[]
 }
 
-export type AddDocumentMode = 'manual' | 'source'
+export const compilationJobStageLabels: Record<DocumentCompilationJobStage, string> = {
+  queued: 'Queued',
+  parsed: 'Parsed',
+  nodes_generated: 'Nodes generated',
+  projection_built: 'Projection built',
+  smoke_eval_passed: 'Smoke eval passed',
+  published: 'Published',
+  failed: 'Failed',
+  canceled: 'Canceled',
+}
+
+export const bulkJobStageLabels: Record<BulkOperationProgress['status'], string> = {
+  running: 'Running',
+  completed: 'Completed',
+  failed: 'Failed',
+}
+
+export type BulkJob = BulkJobView
+
+export function bulkJobStatusLabel(job: BulkJob) {
+  if (job.kind === 'bulk')
+    return bulkJobStageLabels[job.stage as BulkOperationProgress['status']]
+  return compilationJobStageLabels[job.stage as DocumentCompilationJobStage]
+}
+
+export function bulkJobStatusTone(job: BulkJob): 'good' | 'bad' | 'info' {
+  if (job.kind === 'bulk') {
+    if (job.stage === 'completed')
+      return 'good'
+    if (job.stage === 'failed')
+      return 'bad'
+    return 'info'
+  }
+  if (job.stage === 'published' || job.stage === 'smoke_eval_passed')
+    return 'good'
+  if (job.stage === 'failed' || job.stage === 'canceled')
+    return 'bad'
+  return 'info'
+}
 
 export type SourceAssetOption = {
   value: string
@@ -29,25 +70,24 @@ export type SourceAssetOption = {
   description: string
 }
 
-export const bulkJobStageLabels: Record<BulkJob['stage'], string> = {
-  queued: 'Queued',
-  parsed: 'Parsed',
-  nodes_generated: 'Nodes generated',
-  projection_built: 'Projection built',
-  published: 'Published',
-}
+export type AddDocumentMode = 'manual' | 'source'
+
 export function DocumentRowActions({
   onRename,
   onReindex,
   onDelete,
   onOpen,
   onSettings,
+  onViewJob,
+  onViewArtifact,
 }: {
   onRename: () => void
   onReindex: () => void
   onDelete: () => void
   onOpen: () => void
   onSettings: () => void
+  onViewJob?: () => void
+  onViewArtifact?: () => void
 }) {
   return (
     <div className="flex items-center gap-1">
@@ -60,6 +100,8 @@ export function DocumentRowActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent placement="bottom-end">
           <DropdownMenuItem onClick={onOpen}>Open document</DropdownMenuItem>
+          {onViewArtifact && <DropdownMenuItem onClick={onViewArtifact}>View parse artifact</DropdownMenuItem>}
+          {onViewJob && <DropdownMenuItem onClick={onViewJob}>View compilation job</DropdownMenuItem>}
           <DropdownMenuItem onClick={onRename}>Rename</DropdownMenuItem>
           <DropdownMenuItem onClick={onReindex}>Re-index</DropdownMenuItem>
           <DropdownMenuItem onClick={() => {}}>Download</DropdownMenuItem>

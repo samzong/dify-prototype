@@ -2,6 +2,7 @@ import type {
   AnswerTrace,
   DocumentAsset,
   DocumentCompilationJob,
+  BulkOperationProgress,
   EvidenceBundle,
   GoldenQuestion,
   KnowledgeFsLease,
@@ -38,6 +39,7 @@ export type KnowledgeScenarioBundle = {
   statusBySpaceId: Record<string, KnowledgeSpaceStatus>
   statsBySpaceId: Record<string, KnowledgeSpaceStats>
   jobs: Record<string, DocumentCompilationJob>
+  bulkJobs: Record<string, BulkOperationProgress>
   parseArtifacts: Record<string, ParseArtifact>
   traces: Record<string, AnswerTrace>
   evidenceBundles: Record<string, EvidenceBundle>
@@ -375,6 +377,7 @@ export function createDefaultScenario(): KnowledgeScenarioBundle {
         completedAt: epochAt(300000),
       },
     },
+    bulkJobs: {},
     parseArtifacts: {
       [`${PROTOTYPE_DOCUMENT_IDS.refundPolicy}:3`]: {
         id: 'p7000001-0001-4001-8001-000000000001',
@@ -637,6 +640,7 @@ export function createTraceWithConflictsScenario(): KnowledgeScenarioBundle {
 export function createIngestSuccessScenario(): KnowledgeScenarioBundle {
   const base = createDefaultScenario()
   const handbookId = PROTOTYPE_SPACE_IDS.supportHandbook
+  const bulkJobId = 'bulk-partial-failure-001'
   return {
     ...base,
     id: 'ingest-success',
@@ -653,6 +657,20 @@ export function createIngestSuccessScenario(): KnowledgeScenarioBundle {
         version: 4,
         createdAt: epochAt(120000),
         updatedAt: epochAt(30000),
+      },
+    },
+    bulkJobs: {
+      [bulkJobId]: {
+        id: bulkJobId,
+        knowledgeSpaceId: handbookId,
+        type: 'document_reindex',
+        status: 'completed',
+        totalItems: 3,
+        completedItems: 3,
+        failedItems: 1,
+        failedItemIds: [PROTOTYPE_DOCUMENT_IDS.escalationMatrix],
+        createdAt: isoAt(180000),
+        updatedAt: isoAt(60000),
       },
     },
   }

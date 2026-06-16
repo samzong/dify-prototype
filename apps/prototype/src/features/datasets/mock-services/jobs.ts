@@ -1,6 +1,7 @@
 import type { BulkOperationProgress, DocumentCompilationJob, DocumentCompilationJobStage } from '../api-types'
 import { DOCUMENT_COMPILATION_JOB_STAGES, MockServiceError } from '../api-types'
 import { delay, pollStages } from './helpers'
+import { getActiveKnowledgeScenario } from './scenario'
 import { getKnowledgeMockStore, mutateKnowledgeMockStore } from './store'
 
 export async function getJob(jobId: string) {
@@ -61,8 +62,12 @@ export async function pollJobUntilDone(
 
       job.stage = stage
       job.updatedAt = Date.now()
-      if (stage === 'published')
+      if (stage === 'published') {
         job.completedAt = Date.now()
+        syncDocumentFromJob(draft, job)
+      }
+      if (stage === 'failed')
+        syncDocumentFromJob(draft, job, 'failed')
     })
     latest = await getJob(jobId)
     onTick?.(latest)
@@ -73,11 +78,84 @@ export async function pollJobUntilDone(
 
 export async function getBulkJob(bulkJobId: string) {
   await delay(100)
+  const store = getKnowledgeMockStore()
+  const stored = store.bulkJobs[bulkJobId]
+  if (stored)
+    return structuredClone(stored)
+
   const progress = buildBulkJobProgress(bulkJobId)
   if (!progress)
     throw new MockServiceError(404, 'Bulk job not found')
 
   return progress
+}
+
+export async function simulateBulkReindexJob(spaceId: string, documentAssetIds: string[]) {
+  const bulkJobId = `bulk-${Date.now().toString(36)}`
+  const partialFailure = getActiveKnowledgeScenario() === 'ingest-success' && documentAssetIds.length > 1
+  const failId = partialFailure ? documentAssetIds[documentAssetIds.length - 1] : null
+  const now = new Date().toISOString()
+
+  mutateKnowledgeMockStore((draft) => {
+    draft.bulkJobs[bulkJobId] = {
+      id: bulkJobId,
+      knowledgeSpaceId: spaceId,
+      type: 'document_reindex',
+      status: 'running',
+      totalItems: documentAssetIds.length,
+      completedItems: 0,
+      failedItems: 0,
+      failedItemIds: [],
+      createdAt: now,
+      updatedAt: now,
+    }
+  })
+
+  for (let index = 0; index < documentAssetIds.length; index += 1) {
+    await delay(450)
+    const documentAssetId = documentAssetIds[index]
+    const failed = documentAssetId === failId
+
+    mutateKnowledgeMockStore((draft) => {
+      const bulk = draft.bulkJobs[bulkJobId]
+      if (!bulk)
+        return
+
+      bulk.completedItems = index + 1
+      bulk.updatedAt = new Date().toISOString()
+      if (failed) {
+        bulk.failedItems += 1
+        bulk.failedItemIds.push(documentAssetId)
+      }
+      else {
+        const doc = draft.documentsBySpaceId[spaceId]?.find(entry => entry.id === documentAssetId)
+        if (doc) {
+          doc.parserStatus = 'parsed'
+          doc.version += 1
+          doc.updatedAt = new Date().toISOString()
+        }
+      }
+
+      if (bulk.completedItems >= bulk.totalItems)
+        bulk.status = bulk.failedItems > 0 && bulk.failedItems === bulk.totalItems ? 'failed' : 'completed'
+    })
+  }
+
+  return bulkJobId
+}
+
+function syncDocumentFromJob(
+  draft: ReturnType<typeof getKnowledgeMockStore>,
+  job: DocumentCompilationJob,
+  parserStatus: 'parsed' | 'failed' = 'parsed',
+) {
+  const doc = draft.documentsBySpaceId[job.knowledgeSpaceId]?.find(entry => entry.id === job.documentAssetId)
+  if (!doc)
+    return
+
+  doc.parserStatus = parserStatus
+  doc.version = job.version
+  doc.updatedAt = new Date().toISOString()
 }
 
 function buildBulkJobProgress(bulkJobId: string): BulkOperationProgress | null {
@@ -106,8 +184,9 @@ function buildBulkJobProgress(bulkJobId: string): BulkOperationProgress | null {
 }
 
 export async function simulateReindexJob(spaceId: string, documentAssetId: string) {
-  const jobId = `job-reindex-${documentAssetId}`
+  const jobId = `job-reindex-${documentAssetId}-${Date.now().toString(36)}`
   mutateKnowledgeMockStore((draft) => {
+    const doc = draft.documentsBySpaceId[spaceId]?.find(entry => entry.id === documentAssetId)
     draft.jobs[jobId] = {
       id: jobId,
       knowledgeSpaceId: spaceId,
@@ -115,11 +194,11 @@ export async function simulateReindexJob(spaceId: string, documentAssetId: strin
       documentAssetId,
       queueJobId: `queue-${jobId}`,
       stage: 'queued',
-      version: 1,
+      version: (doc?.version ?? 0) + 1,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
   })
 
-  return pollJobUntilDone(jobId)
+  return getJob(jobId)
 }

@@ -50,6 +50,14 @@ export type DatasetDocumentRow = {
   source: string
   parserStatus: DatasetDocumentParserStatus
   version: string
+  versionNumber?: number
+  mimeType?: string
+  objectKey?: string
+  sha256?: string
+  sizeBytes?: number
+  sourceId?: string
+  metadata?: Record<string, unknown>
+  compilationJobId?: string
   indexStatus: DatasetDocumentIndexStatus
   evidenceUse: string
   updatedAt: string

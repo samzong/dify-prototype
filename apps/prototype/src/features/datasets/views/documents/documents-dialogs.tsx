@@ -25,6 +25,7 @@ import {
   type AddDocumentMode,
   type SourceAssetOption,
 } from './documents-helpers'
+import { DocumentApiDetails } from './documents-drawers'
 
 export function DocumentsDialogs({
   addOpen,
@@ -56,6 +57,8 @@ export function DocumentsDialogs({
   metadataFields,
   showToast,
   exclusionReason,
+  onViewJob,
+  onViewArtifact,
 }: {
   addOpen: boolean
   setAddOpen: (open: boolean) => void
@@ -86,6 +89,8 @@ export function DocumentsDialogs({
   metadataFields: { key: string; label: string; value: string }[]
   showToast: (message: string) => void
   exclusionReason: (doc: DatasetDocumentRow) => string
+  onViewJob?: () => void
+  onViewArtifact?: () => void
 }) {
   return (
     <>
@@ -220,8 +225,15 @@ export function DocumentsDialogs({
               <DetailRow label="Evidence inclusion" value={detailDoc.evidenceUse} />
               <DetailRow label="Updated at" value={detailDoc.updatedAt} />
               <DetailRow label="Exclusion reason" value={exclusionReason(detailDoc)} />
+              <DocumentApiDetails document={detailDoc} />
             </div>
             <div className="mt-6 flex flex-wrap gap-2">
+              {onViewArtifact && (
+                <Button variant="secondary" size="small" onClick={onViewArtifact}>View parse artifact</Button>
+              )}
+              {onViewJob && (
+                <Button variant="secondary" size="small" onClick={onViewJob}>View compilation job</Button>
+              )}
               <Button variant="secondary" size="small" onClick={() => handleReindex([detailDoc.id])}>Re-index</Button>
               <Button variant="secondary" size="small" onClick={() => {
                 setRenameDoc(detailDoc)

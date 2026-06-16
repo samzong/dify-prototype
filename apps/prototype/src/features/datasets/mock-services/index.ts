@@ -34,6 +34,7 @@ export {
   pollJobUntilDone,
   getBulkJob,
   simulateReindexJob,
+  simulateBulkReindexJob,
 } from './jobs'
 
 export {

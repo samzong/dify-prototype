@@ -19,7 +19,7 @@ import {
   documentStatusFilterOptions,
   type DatasetDocumentRow,
 } from '../../fixtures/items'
-import { DocumentRowActions, type BulkJob, bulkJobStageLabels } from './documents-helpers'
+import { DocumentRowActions, bulkJobStatusLabel, bulkJobStatusTone, type BulkJob } from './documents-helpers'
 
 export function DocumentsTablePanel({
   search,
@@ -34,6 +34,7 @@ export function DocumentsTablePanel({
   allVisibleSelected,
   toggleSelectAll,
   bulkJob,
+  onOpenBulkDrawer,
   setAddOpen,
   setMetadataOpen,
   updateDocument,
@@ -43,6 +44,8 @@ export function DocumentsTablePanel({
   setRenameValue,
   setDetailDoc,
   showToast,
+  onViewJob,
+  onViewArtifact,
 }: {
   search: string
   setSearch: (value: string) => void
@@ -56,6 +59,7 @@ export function DocumentsTablePanel({
   allVisibleSelected: boolean
   toggleSelectAll: () => void
   bulkJob: BulkJob | null
+  onOpenBulkDrawer: () => void
   setAddOpen: (open: boolean) => void
   setMetadataOpen: (open: boolean) => void
   updateDocument: (id: string, patch: Partial<DatasetDocumentRow>) => void
@@ -65,6 +69,8 @@ export function DocumentsTablePanel({
   setRenameValue: (value: string) => void
   setDetailDoc: (doc: DatasetDocumentRow | null) => void
   showToast: (message: string) => void
+  onViewJob: (doc: DatasetDocumentRow) => void
+  onViewArtifact: (doc: DatasetDocumentRow) => void
 }) {
   return (
     <>
@@ -145,18 +151,33 @@ export function DocumentsTablePanel({
       )}
 
       {bulkJob && (
-        <div className="rounded-xl border border-components-panel-border bg-components-panel-bg px-4 py-3 shadow-xs">
+        <button
+          type="button"
+          onClick={onOpenBulkDrawer}
+          className="w-full rounded-xl border border-components-panel-border bg-components-panel-bg px-4 py-3 text-left shadow-xs hover:bg-state-base-hover"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="system-sm-semibold text-text-secondary">Bulk re-index job {bulkJob.id}</div>
+              <div className="system-sm-semibold text-text-secondary">
+                {bulkJob.kind === 'bulk' ? 'Bulk re-index job' : 'Compilation job'}
+                {' '}
+                {bulkJob.id}
+              </div>
               <div className="mt-1 system-xs-regular text-text-tertiary">
                 {bulkJob.completed}
                 {' / '}
                 {bulkJob.total}
                 {' documents'}
+                {bulkJob.failedItemIds && bulkJob.failedItemIds.length > 0 && (
+                  <span>
+                    {' · '}
+                    {bulkJob.failedItemIds.length}
+                    {' failed'}
+                  </span>
+                )}
               </div>
             </div>
-            <StatusBadge label={bulkJobStageLabels[bulkJob.stage]} tone={bulkJob.stage === 'published' ? 'good' : 'info'} />
+            <StatusBadge label={bulkJobStatusLabel(bulkJob)} tone={bulkJobStatusTone(bulkJob)} />
           </div>
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-background-default-dimmed">
             <div
@@ -164,7 +185,7 @@ export function DocumentsTablePanel({
               style={{ width: `${Math.min(100, Math.round((bulkJob.completed / Math.max(1, bulkJob.total)) * 100))}%` }}
             />
           </div>
-        </div>
+        </button>
       )}
 
       <div className="overflow-hidden rounded-xl border border-components-panel-border bg-components-panel-bg shadow-xs">
@@ -221,6 +242,8 @@ export function DocumentsTablePanel({
                           }}
                           onOpen={() => setDetailDoc(doc)}
                           onSettings={() => setDetailDoc(doc)}
+                          onViewJob={() => onViewJob(doc)}
+                          onViewArtifact={() => onViewArtifact(doc)}
                         />
                       </td>
                     </tr>

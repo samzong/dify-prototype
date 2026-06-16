@@ -34,6 +34,8 @@ export async function uploadDocument(spaceId: string, input: { filename: string;
   await delay(280)
 
   if (getActiveKnowledgeScenario() === 'upload-rejected') {
+    if (input.filename.toLowerCase().includes('unavailable'))
+      throw new MockServiceError(503, 'Service temporarily unavailable')
     if (input.sizeBytes > 10_485_760)
       throw new MockServiceError(413, 'Payload too large')
     throw new MockServiceError(429, 'Upload rate limit exceeded')
