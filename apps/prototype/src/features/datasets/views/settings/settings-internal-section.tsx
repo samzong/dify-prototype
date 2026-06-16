@@ -213,33 +213,6 @@ export function SettingsInternalSections(props: SettingsSectionProps) {
                 </>
               )}
 
-      {config.advanced && (
-        <>
-          <SettingsDivider />
-          <SettingsSection
-            title="Advanced"
-            description="Admin-only health checks and cleanup summaries."
-          >
-            <SettingsFieldRow label="Health check">
-              <div className="flex flex-col gap-y-2">
-                <p className="system-xs-regular text-text-tertiary">{config.advanced.healthCheckSummary}</p>
-                <Button variant="secondary" className="w-fit">
-                  Run health check
-                </Button>
-              </div>
-            </SettingsFieldRow>
-            <SettingsFieldRow label="Cleanup">
-              <div className="flex flex-col gap-y-2">
-                <p className="system-xs-regular text-text-tertiary">{config.advanced.cleanupSummary}</p>
-                <Button variant="secondary" className="w-fit">
-                  Review cleanup
-                </Button>
-              </div>
-            </SettingsFieldRow>
-          </SettingsSection>
-        </>
-      )}
-
       <SettingsDivider />
     </>
   )

@@ -62,6 +62,7 @@ export {
   listActiveLeases,
   releaseLease,
   listStagedCommits,
+  triggerProjectionRebuild,
 } from './operations'
 
 export {

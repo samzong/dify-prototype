@@ -5,7 +5,7 @@ export type DatasetScreen =
   | { kind: 'create'; mode: string }
   | { kind: 'detail'; datasetId: string; tab: DatasetDetailTabPath }
 
-export type DatasetDetailTabPath = 'overview' | 'sources' | 'documents' | 'hitTesting' | 'quality' | 'settings' | 'pipeline'
+export type DatasetDetailTabPath = 'overview' | 'sources' | 'documents' | 'hitTesting' | 'quality' | 'settings' | 'operations' | 'pipeline'
 
 export const DEFAULT_DATASET_TAB_PATH: DatasetDetailTabPath = 'overview'
 
@@ -16,6 +16,7 @@ const datasetDetailTabPaths = new Set<DatasetDetailTabPath>([
   'hitTesting',
   'quality',
   'settings',
+  'operations',
   'pipeline',
 ])
 

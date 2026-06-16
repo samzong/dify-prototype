@@ -2,7 +2,7 @@ export type BadgeTone = 'good' | 'warn' | 'bad' | 'info' | 'neutral' | 'purple'
 
 export type EvidenceState = 'answerable' | 'partial' | 'conflict' | 'not-enough-evidence' | 'permission-limited'
 
-export type DatasetDetailTab = 'overview' | 'sources' | 'documents' | 'evidence' | 'quality' | 'settings' | 'pipeline'
+export type DatasetDetailTab = 'overview' | 'sources' | 'documents' | 'evidence' | 'quality' | 'settings' | 'operations' | 'pipeline'
 
 export type DatasetTask = {
   title: string

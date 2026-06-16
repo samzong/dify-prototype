@@ -4,6 +4,7 @@ import { detailNavItems } from '../../constants/detail-nav'
 import { DocumentsView } from '../documents/DocumentsView'
 import { EvidenceView } from '../EvidenceView'
 import { OverviewView } from '../OverviewView'
+import { OperationsView } from '../operations/OperationsView'
 import { PipelineView } from '../PipelineView'
 import { QualityView } from '../QualityView'
 import { SettingsView } from '../settings/SettingsView'
@@ -34,7 +35,7 @@ export function DetailPage({
           <PageHeader title={meta.title} description={meta.description} />
           <div className="min-h-0 flex-1">
             {activeTab === 'overview' && (
-              <OverviewView item={item} onNavigate={onTabChange} onDelete={onDeleteKnowledge} />
+              <OverviewView item={item} onNavigate={onTabChange} />
             )}
             {activeTab === 'sources' && (
               <SourcesView
@@ -54,6 +55,7 @@ export function DetailPage({
             )}
             {activeTab === 'evidence' && <EvidenceView key={item.id} item={item} onOpenQuality={() => onTabChange('quality')} />}
             {activeTab === 'quality' && <QualityView item={item} />}
+            {activeTab === 'operations' && <OperationsView item={item} />}
             {activeTab === 'settings' && <SettingsView item={item} />}
             {activeTab === 'pipeline' && item.runtimeMode === 'rag_pipeline' && <PipelineView item={item} />}
           </div>

@@ -87,3 +87,31 @@ function cloneLease(lease: KnowledgeFsLease) {
 function cloneStagedCommit(commit: KnowledgeSpaceStagedCommit) {
   return structuredClone(commit)
 }
+
+export async function triggerProjectionRebuild(spaceId: string) {
+  await delay(280)
+  const commitId = `sc-rebuild-${Date.now().toString(36)}`
+  const now = new Date().toISOString()
+
+  mutateKnowledgeMockStore((draft) => {
+    const status = draft.statusBySpaceId[spaceId]
+    if (status) {
+      status.index.summaries.denseVector.building += 1
+      status.generatedAt = now
+    }
+
+    const commits = draft.stagedCommitsBySpaceId[spaceId] ?? []
+    draft.stagedCommitsBySpaceId[spaceId] = [{
+      id: commitId,
+      knowledgeSpaceId: spaceId,
+      tenantId: draft.spaces.find(space => space.id === spaceId)?.tenantId ?? 'tenant-prototype',
+      idempotencyKey: `projection-rebuild-${Date.now()}`,
+      operationType: 'projection-publish',
+      status: 'projections-built',
+      createdAt: now,
+      updatedAt: now,
+    }, ...commits]
+  })
+
+  return { commitId }
+}
