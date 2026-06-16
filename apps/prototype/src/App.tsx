@@ -26,8 +26,11 @@ import { AccountSettingsView, type SettingsTab } from './AccountSettingsView'
 import { Knowledge2Section, KnowledgeTopNav } from './Knowledge2Workbench'
 import { knowledge2Items, type Knowledge2Item } from './knowledge-2-data'
 import { prototypeApps, type AppMode, type PrototypeApp } from './prototype-data'
-import { useThemePreference } from './use-theme-preference'
+import { readAuthenticated, writeAuthenticated } from './auth-preference'
+import { usePrototypeLocation } from './use-prototype-location'
+import { type PrototypeRoute } from './prototype-location'
 import { type AppearanceMode } from './theme-preference'
+import { useThemePreference } from './use-theme-preference'
 import { WorkflowOrchestrate } from './WorkflowOrchestrate'
 
 type MainSection = 'studio' | 'knowledge' | 'workflow'
@@ -52,7 +55,41 @@ const prototypeRepositoryUrl = 'https://github.com/samzong/dify-prototype'
 
 function App() {
   const { appearanceMode, theme, setAppearanceMode, setThemePreference } = useThemePreference()
-  const [authenticated, setAuthenticated] = useState(false)
+  const [authenticated, setAuthenticatedState] = useState(readAuthenticated)
+  const { route, settingsTab, navigate } = usePrototypeLocation()
+
+  const setAuthenticated = (value: boolean) => {
+    writeAuthenticated(value)
+    setAuthenticatedState(value)
+  }
+
+  useEffect(() => {
+    if (!authenticated && route.section !== 'signin') {
+      navigate({ route: { section: 'signin' }, settingsTab: null, replace: true })
+      return
+    }
+
+    if (authenticated && route.section === 'signin') {
+      navigate({ route: { section: 'studio' }, settingsTab: null, replace: true })
+      return
+    }
+
+    if (authenticated && window.location.pathname === '/') {
+      navigate({ route: { section: 'studio' }, settingsTab: null, replace: true })
+    }
+  }, [authenticated, navigate, route.section])
+
+  const handleSignedIn = () => {
+    setAuthenticated(true)
+    if (route.section === 'signin') {
+      navigate({ route: { section: 'studio' }, settingsTab: null, replace: true })
+    }
+  }
+
+  const handleSignOut = () => {
+    setAuthenticated(false)
+    navigate({ route: { section: 'signin' }, settingsTab: null, replace: true })
+  }
 
   return (
     <TooltipProvider delay={300} closeDelay={200}>
@@ -63,16 +100,19 @@ function App() {
               <AppsDefaultPage
                 theme={theme}
                 appearanceMode={appearanceMode}
+                route={route.section === 'signin' ? { section: 'studio' } : route}
+                settingsTab={settingsTab}
+                onNavigate={navigate}
                 onThemeChange={setThemePreference}
                 onAppearanceChange={setAppearanceMode}
-                onSignOut={() => setAuthenticated(false)}
+                onSignOut={handleSignOut}
               />
             )
           : (
               <SignInPage
                 theme={theme}
                 onThemeChange={setThemePreference}
-                onSignedIn={() => setAuthenticated(true)}
+                onSignedIn={handleSignedIn}
               />
             )}
       </div>
@@ -272,27 +312,54 @@ function PrototypeRepoLink({ className }: { className?: string }) {
 function AppsDefaultPage({
   theme,
   appearanceMode,
+  route,
+  settingsTab,
+  onNavigate,
   onThemeChange,
   onAppearanceChange,
   onSignOut,
 }: {
   theme: 'light' | 'dark'
   appearanceMode: AppearanceMode
+  route: Exclude<PrototypeRoute, { section: 'signin' }>
+  settingsTab: SettingsTab | null
+  onNavigate: (options: { route: Exclude<PrototypeRoute, { section: 'signin' }>; settingsTab?: SettingsTab | null; replace?: boolean }) => void
   onThemeChange: (theme: 'light' | 'dark') => void
   onAppearanceChange: (mode: AppearanceMode) => void
   onSignOut: () => void
 }) {
-  const [activeSection, setActiveSection] = useState<MainSection>('studio')
-  const [knowledgeScreen, setKnowledgeScreen] = useState<'list' | string>('list')
   const [knowledgeItems, setKnowledgeItems] = useState<Knowledge2Item[]>(() => knowledge2Items)
   const [keywords, setKeywords] = useState('')
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsInitialTab, setSettingsInitialTab] = useState<SettingsTab>('provider')
+
+  const activeSection: MainSection = route.section === 'knowledge'
+    ? 'knowledge'
+    : route.section === 'workflow'
+      ? 'workflow'
+      : 'studio'
+  const knowledgeScreen = route.section === 'knowledge' ? route.knowledgeScreen : 'list'
+  const settingsOpen = settingsTab !== null
+  const settingsInitialTab = settingsTab ?? 'provider'
 
   const openSettings = (tab: SettingsTab = 'provider') => {
-    setSettingsInitialTab(tab)
-    setSettingsOpen(true)
+    onNavigate({ route, settingsTab: tab })
   }
+
+  const closeSettings = () => {
+    onNavigate({ route, settingsTab: null })
+  }
+
+  const goToStudio = () => {
+    onNavigate({ route: { section: 'studio' }, settingsTab })
+  }
+
+  const goToKnowledge = (screen: 'list' | string = 'list') => {
+    onNavigate({ route: { section: 'knowledge', knowledgeScreen: screen }, settingsTab })
+  }
+
+  const openWorkflow = (appId = 'sales-intake') => {
+    onNavigate({ route: { section: 'workflow', appId }, settingsTab: null })
+  }
+
   const filteredApps = useMemo(() => {
     const query = keywords.trim().toLowerCase()
     if (!query)
@@ -301,8 +368,8 @@ function AppsDefaultPage({
     return prototypeApps.filter(app => `${app.name} ${app.description} ${app.tags.join(' ')}`.toLowerCase().includes(query))
   }, [keywords])
 
-  if (activeSection === 'workflow')
-    return <WorkflowOrchestrate onBack={() => setActiveSection('studio')} />
+  if (route.section === 'workflow')
+    return <WorkflowOrchestrate onBack={goToStudio} />
 
   return (
     <div className="flex h-full flex-col bg-background-body text-text-primary">
@@ -311,14 +378,22 @@ function AppsDefaultPage({
         activeSection={activeSection}
         knowledgeScreen={knowledgeScreen}
         onSectionChange={(section) => {
-          setActiveSection(section)
-          if (section === 'knowledge')
-            setKnowledgeScreen('list')
+          if (section === 'studio')
+            goToStudio()
+          else if (section === 'knowledge')
+            goToKnowledge('list')
         }}
         knowledgeItems={knowledgeItems}
-        onGoToKnowledgeList={() => setKnowledgeScreen('list')}
-        onSelectKnowledge={setKnowledgeScreen}
-        onOpenKnowledgeCreate={mode => setKnowledgeScreen(`create:${mode}`)}
+        onGoToKnowledgeList={() => goToKnowledge('list')}
+        onSelectKnowledge={id => goToKnowledge(id)}
+        onOpenKnowledgeCreate={(mode) => {
+          if (mode === 'standard')
+            goToKnowledge('create:standard')
+          else if (mode === 'pipeline')
+            goToKnowledge('create:pipeline')
+          else
+            goToKnowledge('create:external')
+        }}
         onThemeChange={onThemeChange}
         onSignOut={onSignOut}
         onOpenSettings={() => openSettings('provider')}
@@ -326,7 +401,7 @@ function AppsDefaultPage({
       />
       <AccountSettingsView
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={closeSettings}
         theme={theme}
         appearanceMode={appearanceMode}
         onAppearanceChange={onAppearanceChange}
@@ -347,8 +422,14 @@ function AppsDefaultPage({
                 </a>
               </div>
               <div className="relative grid grow grid-cols-1 content-start gap-4 px-12 pt-2 sm:grid-cols-1 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
-                <NewAppCard onOpenWorkflow={() => setActiveSection('workflow')} />
-                {filteredApps.map(app => <AppCard key={app.id} app={app} onOpenWorkflow={() => setActiveSection('workflow')} />)}
+                <NewAppCard onOpenWorkflow={() => openWorkflow()} />
+                {filteredApps.map(app => (
+                  <AppCard
+                    key={app.id}
+                    app={app}
+                    onOpenWorkflow={() => openWorkflow(app.id)}
+                  />
+                ))}
               </div>
               <div className="flex items-center justify-center gap-2 py-4 text-text-quaternary" role="region" aria-label="Drop DSL file here to create app">
                 <span className="i-ri-drag-drop-line size-4" />
@@ -360,14 +441,21 @@ function AppsDefaultPage({
             <Knowledge2Section
               screen={knowledgeScreen}
               items={knowledgeItems}
-              onOpenDetail={setKnowledgeScreen}
-              onOpenCreate={mode => setKnowledgeScreen(`create:${mode}`)}
+              onOpenDetail={id => goToKnowledge(id)}
+              onOpenCreate={(mode) => {
+                if (mode === 'standard')
+                  goToKnowledge('create:standard')
+                else if (mode === 'pipeline')
+                  goToKnowledge('create:pipeline')
+                else
+                  goToKnowledge('create:external')
+              }}
               onUpdateKnowledge={(id, updater) => {
                 setKnowledgeItems(current => current.map(item => item.id === id ? updater(item) : item))
               }}
               onCreateKnowledge={(item) => {
                 setKnowledgeItems(current => [item, ...current])
-                setKnowledgeScreen(item.id)
+                goToKnowledge(item.id)
               }}
             />
           )}
