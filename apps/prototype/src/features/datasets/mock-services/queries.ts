@@ -45,9 +45,7 @@ export async function runQuery(
     throw new MockServiceError(503, 'Query generation unavailable')
 
   const scenario = getActiveKnowledgeScenario()
-  const traceId = scenario === 'trace-with-conflicts'
-    ? PROTOTYPE_TRACE_IDS.conflictPricing
-    : PROTOTYPE_TRACE_IDS.partialRefund
+  const traceId = pickTraceId(scenario, request)
 
   const store = getKnowledgeMockStore()
   const template = store.traces[traceId]
@@ -83,16 +81,19 @@ export async function runQuery(
         createdAt: new Date().toISOString(),
       }
 
+  const answerText = bundle.items.map(item => item.text).join('\n\n') || 'No answer generated in mock mode.'
+  const answerChunks = chunkAnswerText(answerText)
+
   const events: QueryStreamEvent[] = [
     { type: 'trace-id', traceId },
     ...trace.steps.map(step => ({ type: 'step' as const, step })),
-    { type: 'answer-chunk', text: bundle.items[0]?.text ?? 'No answer generated in mock mode.' },
+    ...answerChunks.map(text => ({ type: 'answer-chunk' as const, text })),
     { type: 'done', trace, bundle },
   ]
 
   await emitStream(events, (event) => {
     onEvent?.(event)
-  })
+  }, 180)
 
   mutateKnowledgeMockStore((draft) => {
     draft.traces[traceId] = trace
@@ -100,6 +101,19 @@ export async function runQuery(
   })
 
   return { trace, bundle }
+}
+
+function pickTraceId(scenario: ReturnType<typeof getActiveKnowledgeScenario>, request: QueryRunRequest) {
+  if (scenario === 'trace-with-conflicts' || /pricing|enterprise price/i.test(request.query))
+    return PROTOTYPE_TRACE_IDS.conflictPricing
+  return PROTOTYPE_TRACE_IDS.partialRefund
+}
+
+function chunkAnswerText(text: string) {
+  const chunks: string[] = []
+  for (let index = 0; index < text.length; index += 36)
+    chunks.push(text.slice(index, index + 36))
+  return chunks.length ? chunks : [text]
 }
 
 function getVirtualTree(traceId: string, kind: 'evidence' | 'conflicts' | 'missing') {

@@ -3,19 +3,20 @@ import { Dialog, DialogCloseButton, DialogContent, DialogTitle } from '@langgeni
 import { RiArrowRightSLine } from '@remixicon/react'
 import { useState } from 'react'
 import { StatusBadge } from '../components/badges'
+import { transitionToSideDrawer } from '../components/side-drawer'
 import {
   evidenceStateLabels,
   evidenceStateTones,
   type DatasetItem,
-  type DatasetTrace,
 } from '../fixtures/items'
 import { ActionToast, EmptyPanel, Panel } from '../components/panel'
+import { AnswerTraceDrawer } from './evidence/evidence-trace-drawer'
 
 export function QualityView({ item }: { item: DatasetItem }) {
   const [traces] = useState(() => item.traces.map(trace => ({ ...trace })))
   const [badCases, setBadCases] = useState(() => [...item.badCases])
   const [goldenQuestions, setGoldenQuestions] = useState(() => [...item.goldenQuestions])
-  const [selectedTrace, setSelectedTrace] = useState<DatasetTrace | null>(null)
+  const [traceDrawerId, setTraceDrawerId] = useState<string | null>(null)
   const [compareOpen, setCompareOpen] = useState(false)
   const [toast, setToast] = useState('')
 
@@ -24,8 +25,8 @@ export function QualityView({ item }: { item: DatasetItem }) {
     window.setTimeout(() => setToast(''), 2200)
   }
 
-  const createBadCaseFromTrace = (trace: DatasetTrace) => {
-    const label = `Trace ${trace.id}`
+  const createBadCaseFromTrace = (traceId: string) => {
+    const label = `Trace ${traceId}`
     if (!badCases.includes(label))
       setBadCases(current => [label, ...current])
     showToast('Bad case created from trace.')
@@ -35,6 +36,10 @@ export function QualityView({ item }: { item: DatasetItem }) {
     if (!goldenQuestions.includes(badCase))
       setGoldenQuestions(current => [badCase, ...current])
     showToast('Golden question generated from bad case.')
+  }
+
+  const openTraceDrawer = (traceId: string) => {
+    setTraceDrawerId(traceId)
   }
 
   return (
@@ -72,7 +77,7 @@ export function QualityView({ item }: { item: DatasetItem }) {
             <button
               key={trace.id}
               type="button"
-              onClick={() => setSelectedTrace(trace)}
+              onClick={() => openTraceDrawer(trace.id)}
               className="flex w-full items-center justify-between gap-3 rounded-lg border border-divider-subtle bg-background-default-subtle p-3 text-left hover:bg-state-base-hover"
             >
               <div className="min-w-0">
@@ -115,35 +120,6 @@ export function QualityView({ item }: { item: DatasetItem }) {
         </Panel>
       </div>
 
-      <Dialog open={!!selectedTrace} onOpenChange={(open) => { if (!open) setSelectedTrace(null) }}>
-        {selectedTrace && (
-          <DialogContent className="w-[560px] max-w-[calc(100vw-2rem)]">
-            <DialogCloseButton />
-            <DialogTitle className="system-md-semibold text-text-secondary">{selectedTrace.id}</DialogTitle>
-            <div className="mt-4 space-y-2">
-              <div className="rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-2">
-                <div className="system-xs-medium text-text-tertiary">Query</div>
-                <div className="mt-1 system-sm-regular text-text-secondary">{selectedTrace.query}</div>
-              </div>
-              <div className="rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-2">
-                <div className="system-xs-medium text-text-tertiary">State</div>
-                <div className="mt-1"><StatusBadge label={evidenceStateLabels[selectedTrace.state]} tone={evidenceStateTones[selectedTrace.state]} /></div>
-              </div>
-              {selectedTrace.failureSource && (
-                <div className="rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-2">
-                  <div className="system-xs-medium text-text-tertiary">Failure source</div>
-                  <div className="mt-1 system-sm-regular text-text-secondary">{selectedTrace.failureSource}</div>
-                </div>
-              )}
-            </div>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Button variant="secondary" size="small" onClick={() => createBadCaseFromTrace(selectedTrace)}>Create bad case</Button>
-              <Button variant="ghost" size="small" onClick={() => setCompareOpen(true)}>Compare before / after</Button>
-            </div>
-          </DialogContent>
-        )}
-      </Dialog>
-
       <Dialog open={compareOpen} onOpenChange={setCompareOpen}>
         <DialogContent className="w-[640px] max-w-[calc(100vw-2rem)]">
           <DialogCloseButton />
@@ -154,11 +130,22 @@ export function QualityView({ item }: { item: DatasetItem }) {
                 <div className="system-sm-semibold text-text-secondary">{trace.id}</div>
                 <div className="mt-2"><StatusBadge label={evidenceStateLabels[trace.state]} tone={evidenceStateTones[trace.state]} /></div>
                 <div className="mt-2 system-xs-regular text-text-tertiary">{trace.meta}</div>
+                <Button variant="ghost" size="small" className="mt-3" onClick={() => transitionToSideDrawer(() => setCompareOpen(false), () => openTraceDrawer(trace.id))}>
+                  Open answer trace
+                </Button>
               </div>
             ))}
           </div>
         </DialogContent>
       </Dialog>
+
+      <AnswerTraceDrawer
+        open={!!traceDrawerId}
+        traceId={traceDrawerId}
+        documents={item.documents}
+        onClose={() => setTraceDrawerId(null)}
+        onCreateBadCase={createBadCaseFromTrace}
+      />
 
       <ActionToast message={toast} visible={!!toast} />
     </div>

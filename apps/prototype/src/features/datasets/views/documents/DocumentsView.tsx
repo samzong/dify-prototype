@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { transitionToSideDrawer } from '../../components/side-drawer'
 import { ActionToast } from '../../components/panel'
 import type { DatasetDocumentRow, DatasetItem } from '../../fixtures/items'
 import { DocumentsDialogs } from './documents-dialogs'
@@ -126,8 +127,24 @@ export function DocumentsView({
         metadataFields={metadataFields}
         showToast={controller.showToast}
         exclusionReason={controller.exclusionReason}
-        onViewJob={controller.detailDoc ? () => controller.openJobDrawer(controller.detailDoc!) : undefined}
-        onViewArtifact={controller.detailDoc ? () => controller.openArtifactDrawer(controller.detailDoc!) : undefined}
+        onViewJob={controller.detailDoc
+          ? () => {
+              const doc = controller.detailDoc!
+              transitionToSideDrawer(
+                () => controller.setDetailDoc(null),
+                () => void controller.openJobDrawer(doc),
+              )
+            }
+          : undefined}
+        onViewArtifact={controller.detailDoc
+          ? () => {
+              const doc = controller.detailDoc!
+              transitionToSideDrawer(
+                () => controller.setDetailDoc(null),
+                () => void controller.openArtifactDrawer(doc),
+              )
+            }
+          : undefined}
       />
       <DocumentJobDrawer
         open={controller.jobDrawerOpen}

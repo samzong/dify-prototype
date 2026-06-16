@@ -1,59 +1,16 @@
 import type { DocumentCompilationJob, DocumentCompilationJobStage } from '../../api-types'
 import type { BulkOperationProgress } from '../../api-types'
 import { Button } from '@langgenius/dify-ui/button'
-import { RiCloseLine } from '@remixicon/react'
 import type { ParseArtifact } from '../../api-types'
 import { StatusBadge } from '../../components/badges'
+import { SideDrawer } from '../../components/side-drawer'
 import type { BadgeTone } from '../../fixtures/types'
 import { DetailRow, EmptyPanel } from '../../components/panel'
 import { formatDocumentBytes } from '../../fixtures/document-bridge'
 import type { DatasetDocumentRow } from '../../fixtures/items'
 import { compilationJobStageLabels } from './documents-helpers'
 
-export function DocumentsSideDrawer({
-  open,
-  title,
-  description,
-  onClose,
-  children,
-}: {
-  open: boolean
-  title: string
-  description?: string
-  onClose: () => void
-  children: React.ReactNode
-}) {
-  if (!open)
-    return null
-
-  return (
-    <>
-      <button
-        type="button"
-        className="fixed inset-0 z-40 bg-black/20"
-        aria-label="Close drawer backdrop"
-        onClick={onClose}
-      />
-      <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-divider-subtle bg-components-panel-bg shadow-xl">
-        <div className="flex items-start justify-between gap-3 border-b border-divider-subtle px-4 py-4">
-          <div className="min-w-0">
-            <h2 className="system-md-semibold text-text-secondary">{title}</h2>
-            {description && <p className="mt-1 system-xs-regular text-text-tertiary">{description}</p>}
-          </div>
-          <button
-            type="button"
-            aria-label="Close drawer"
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-text-tertiary hover:bg-state-base-hover"
-            onClick={onClose}
-          >
-            <RiCloseLine className="size-4" />
-          </button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
-      </aside>
-    </>
-  )
-}
+export { SideDrawer as DocumentsSideDrawer }
 
 function jobStageTone(stage: DocumentCompilationJobStage): BadgeTone {
   if (stage === 'published' || stage === 'smoke_eval_passed')
@@ -85,7 +42,7 @@ export function DocumentJobDrawer({
   const terminal = job && ['published', 'failed', 'canceled'].includes(job.stage)
 
   return (
-    <DocumentsSideDrawer
+    <SideDrawer
       open={open}
       title="Compilation job"
       description={job ? `Job ${job.id}` : 'Document ingest / index pipeline'}
@@ -134,7 +91,7 @@ export function DocumentJobDrawer({
           </div>
         </div>
       )}
-    </DocumentsSideDrawer>
+    </SideDrawer>
   )
 }
 
@@ -154,7 +111,7 @@ export function DocumentArtifactDrawer({
   onClose: () => void
 }) {
   return (
-    <DocumentsSideDrawer
+    <SideDrawer
       open={open}
       title="Parse artifact"
       description={document ? `${document.name} · ${document.version}` : undefined}
@@ -201,7 +158,7 @@ export function DocumentArtifactDrawer({
       {!loading && !error && !artifact && document && (
         <EmptyPanel text="No parse artifact is available for this document version." />
       )}
-    </DocumentsSideDrawer>
+    </SideDrawer>
   )
 }
 
@@ -215,7 +172,7 @@ export function BulkJobDrawer({
   onClose: () => void
 }) {
   return (
-    <DocumentsSideDrawer
+    <SideDrawer
       open={open}
       title="Bulk operation"
       description={bulkJob ? `${bulkJob.type.replaceAll('_', ' ')} · ${bulkJob.id}` : undefined}
@@ -248,7 +205,7 @@ export function BulkJobDrawer({
           </div>
         </div>
       )}
-    </DocumentsSideDrawer>
+    </SideDrawer>
   )
 }
 
