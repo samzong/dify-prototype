@@ -69,6 +69,44 @@ Primary synced sources:
 - Do not connect prototypes to real Dify backend services unless the user explicitly requests it.
 - Do not edit synced upstream mirrors directly. Put prototype adapters, fixtures, and new screens in the prototype app or prototype kit.
 
+## Prototype App Layout (`apps/prototype/src`)
+
+Organize prototype code by **Dify product domain and URL shape**, not as a flat list of screens. This keeps concurrent work isolated and matches upstream vocabulary.
+
+### Current structure (Phase 3 complete)
+
+```text
+src/
+  main.tsx, styles.css, App.tsx
+  app/              # thin compose shell (App, AppProviders, AuthenticatedApp)
+  routing/          # Dify-shaped URLs; parse/build in prototype-location.ts
+  preferences/      # auth + theme local persistence
+  shared/           # constants, cross-feature components, synced icon helpers
+  shell/            # header / top nav / account dropdown (maps to dify header/)
+  features/
+    signin/         # /signin
+    studio/         # /apps
+    datasets/       # /datasets/* — DatasetsSection, views/, fixtures/
+    workflow/       # /app/:appId/workflow
+    settings/       # ?settings=* — AccountSettingsView, tab views, types.ts
+```
+
+Each feature owns `components/`, `views/`, and `fixtures/`. Public entry points: `features/<domain>/index.ts`. See `CONTRIBUTING.md` for import boundaries, file-size limits, and PR ownership.
+
+Use **datasets** vocabulary in code (`DatasetItem`, `DatasetsSection`, `SourcesView`, …). Legacy `Knowledge*` filenames are removed.
+
+### Layout rules (strict)
+
+- **URL and route sections use `datasets`.** `PrototypeRoute` section is `datasets` (not `knowledge`); paths are `/datasets`, `/datasets/:id`, etc.
+- **No new feature files at `src/` root** once a `features/<domain>/` folder exists for that domain.
+- **Features do not import sibling feature internals.** Use `shared/`, `routing/`, or public index exports only.
+- **`routing/` and `preferences/` do not import feature UI.** Import neutral types from `features/settings/types.ts` only.
+- **Fixtures live inside the owning feature**; never cross-import fixtures between features.
+- **Page files ≤300 lines.** Split into `views/` or `components/` before growing further.
+- **Name folders with Dify terms:** `datasets` (not `knowledge`), `studio` for `/apps`, settings tabs mirror `account-setting/*-page`.
+
+Human contributors should read `CONTRIBUTING.md`. Use `gmc wt add` worktrees for parallel tasks; link `.local` via `gmc wt share add .local --strategy link`.
+
 ## DESIGN.md Memory
 
 Before creating or updating a prototype screen, read root `DESIGN.md` after syncing and locating the closest Dify source paths.

@@ -20,6 +20,8 @@ This rewrites the pin in `.dify-source.json` (a one-line diff) and re-materializ
 
 Synced source is the visual authority. Prototype code should reuse Dify tokens, primitives, icons, assets, and page/component structure instead of inventing styles.
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for prototype app layout, import boundaries, and parallel development rules.
+
 ## Architecture
 
 Git tracks only the pin and the prototype code; the mirror is always a derived artifact of the pin. Locally it is maintained by the `sync`/`bump` commands, and CI self-heals through `.pnpmfile.cjs`.
