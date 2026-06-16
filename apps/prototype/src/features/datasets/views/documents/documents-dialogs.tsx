@@ -10,10 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@langgenius/dify-ui/select'
-import { RiAddLine, RiEqualizer2Line, RiUploadCloud2Line } from '@remixicon/react'
+import { RiAddLine, RiUploadCloud2Line } from '@remixicon/react'
 import {
-  documentIndexStatusLabels,
-  documentParserStatusLabels,
   sourceTypeLabels,
   type DatasetDocumentRow,
   type DatasetSourceRow,
@@ -33,8 +31,6 @@ export function DocumentsDialogs({
   setMetadataOpen,
   renameDoc,
   setRenameDoc,
-  detailDoc,
-  setDetailDoc,
   renameValue,
   setRenameValue,
   addMode,
@@ -52,10 +48,8 @@ export function DocumentsDialogs({
   canAddDocument,
   handleAddDocument,
   handleRename,
-  handleReindex,
   metadataFields,
   showToast,
-  exclusionReason,
 }: {
   addOpen: boolean
   setAddOpen: (open: boolean) => void
@@ -63,8 +57,6 @@ export function DocumentsDialogs({
   setMetadataOpen: (open: boolean) => void
   renameDoc: DatasetDocumentRow | null
   setRenameDoc: (doc: DatasetDocumentRow | null) => void
-  detailDoc: DatasetDocumentRow | null
-  setDetailDoc: (doc: DatasetDocumentRow | null) => void
   renameValue: string
   setRenameValue: (value: string) => void
   addMode: AddDocumentMode
@@ -82,10 +74,8 @@ export function DocumentsDialogs({
   canAddDocument: boolean
   handleAddDocument: () => void
   handleRename: () => void
-  handleReindex: (ids: string[]) => void
   metadataFields: { key: string; label: string; value: string }[]
   showToast: (message: string) => void
-  exclusionReason: (doc: DatasetDocumentRow) => string
 }) {
   return (
     <>
@@ -205,39 +195,6 @@ export function DocumentsDialogs({
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!detailDoc} onOpenChange={(open) => { if (!open) setDetailDoc(null) }}>
-        {detailDoc && (
-          <DialogContent className="w-[560px] max-w-[calc(100vw-2rem)]">
-            <DialogCloseButton />
-            <DialogTitle className="system-md-semibold text-text-secondary">{detailDoc.name}</DialogTitle>
-            <div className="mt-4 space-y-2">
-              <DetailRow label="Source" value={detailDoc.source} />
-              <DetailRow label="Parser status" value={documentParserStatusLabels[detailDoc.parserStatus]} />
-              <DetailRow label="Asset version" value={detailDoc.version} />
-              <DetailRow label="Index status" value={documentIndexStatusLabels[detailDoc.indexStatus]} />
-              <DetailRow label="Evidence inclusion" value={detailDoc.evidenceUse} />
-              <DetailRow label="Updated at" value={detailDoc.updatedAt} />
-              <DetailRow label="Exclusion reason" value={exclusionReason(detailDoc)} />
-            </div>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Button variant="secondary" size="small" onClick={() => handleReindex([detailDoc.id])}>Re-index</Button>
-              <Button variant="secondary" size="small" onClick={() => {
-                setRenameDoc(detailDoc)
-                setRenameValue(detailDoc.name)
-                setDetailDoc(null)
-              }}
-              >
-                Rename
-              </Button>
-              <Button variant="ghost" size="small">
-                <RiEqualizer2Line className="size-4" />
-                Document settings
-              </Button>
-            </div>
-          </DialogContent>
-        )}
       </Dialog>
     </>
   )

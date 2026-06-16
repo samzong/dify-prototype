@@ -1,9 +1,9 @@
 import type { DatasetDetailTab, DatasetItem } from '../../fixtures/items'
-import { pageMeta } from '../../constants/detail-nav'
-import { detailNavItems } from '../../constants/detail-nav'
+import { pageMeta, detailNavItems } from '../../constants/detail-nav'
 import { DocumentsView } from '../documents/DocumentsView'
 import { EvidenceView } from '../EvidenceView'
 import { OverviewView } from '../OverviewView'
+import { OperationsView } from '../operations/OperationsView'
 import { PipelineView } from '../PipelineView'
 import { QualityView } from '../QualityView'
 import { SettingsView } from '../settings/SettingsView'
@@ -20,6 +20,7 @@ export function DetailPage({
   activeTab: DatasetDetailTab
   onTabChange: (tab: DatasetDetailTab) => void
   onUpdateDataset: (id: string, updater: (item: DatasetItem) => DatasetItem) => void
+  onDeleteKnowledge?: (spaceId: string) => Promise<void>
 }) {
   const navItems = detailNavItems.filter(entry => !entry.hidden?.(item))
   const meta = pageMeta[activeTab]
@@ -31,7 +32,9 @@ export function DetailPage({
         <div className="flex min-h-full flex-col py-3 pl-6">
           <PageHeader title={meta.title} description={meta.description} />
           <div className="min-h-0 flex-1">
-            {activeTab === 'overview' && <OverviewView item={item} onNavigate={onTabChange} />}
+            {activeTab === 'overview' && (
+              <OverviewView item={item} onNavigate={onTabChange} />
+            )}
             {activeTab === 'sources' && (
               <SourcesView
                 item={item}
@@ -48,8 +51,15 @@ export function DetailPage({
                 }))}
               />
             )}
-            {activeTab === 'evidence' && <EvidenceView key={item.id} item={item} onOpenQuality={() => onTabChange('quality')} />}
+            {activeTab === 'evidence' && (
+              <EvidenceView
+                key={item.id}
+                item={item}
+                onOpenQuality={() => onTabChange('quality')}
+              />
+            )}
             {activeTab === 'quality' && <QualityView item={item} />}
+            {activeTab === 'operations' && <OperationsView item={item} />}
             {activeTab === 'settings' && <SettingsView item={item} />}
             {activeTab === 'pipeline' && item.runtimeMode === 'rag_pipeline' && <PipelineView item={item} />}
           </div>

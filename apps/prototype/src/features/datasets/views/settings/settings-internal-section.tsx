@@ -1,4 +1,3 @@
-import { Button } from '@langgenius/dify-ui/button'
 import { Input } from '@langgenius/dify-ui/input'
 import {
   Select,
@@ -13,21 +12,18 @@ import { Slider } from '@langgenius/dify-ui/slider'
 import { Switch } from '@langgenius/dify-ui/switch'
 import type { DatasetItem, RetrievalDepth } from '../../fixtures/items'
 import {
-  ArtifactVersionSelect,
-  dayRetentionOptions,
-  retentionOptions,
   retrievalModeOptions,
-  RetentionSelect,
-  SessionInactivitySelect,
   SettingsDivider,
   SettingsFieldRow,
   SettingsSection,
 } from './settings-layout'
 import type { SettingsSectionProps } from './settings-sections'
+import { SettingsRetentionSection } from './settings-retention-section'
 
 export function SettingsInternalSections(props: SettingsSectionProps) {
   const {
     config,
+    retention,
     retrievalMode,
     setRetrievalMode,
     topK,
@@ -50,18 +46,6 @@ export function SettingsInternalSections(props: SettingsSectionProps) {
     setIndexStrategy,
     pipelineNote,
     setPipelineNote,
-    rawDocumentRetention,
-    setRawDocumentRetention,
-    artifactVersions,
-    setArtifactVersions,
-    answerTraceRetention,
-    setAnswerTraceRetention,
-    evidenceCacheRetention,
-    setEvidenceCacheRetention,
-    inactiveProjectionRetention,
-    setInactiveProjectionRetention,
-    sessionInactivityMinutes,
-    setSessionInactivityMinutes,
   } = props
 
   return (
@@ -172,73 +156,12 @@ export function SettingsInternalSections(props: SettingsSectionProps) {
                 </>
               )}
 
-              {config.retention && (
+              {config.retention && retention && (
                 <>
                   <SettingsDivider />
-                  <SettingsSection
-                    title="Retention"
-                    description="Retention policy for raw documents, artifacts, traces, and projections."
-                  >
-                    <SettingsFieldRow label="Raw document retention">
-                      <RetentionSelect value={rawDocumentRetention} options={retentionOptions} onChange={setRawDocumentRetention} />
-                    </SettingsFieldRow>
-                    <SettingsFieldRow label="Parse artifact versions">
-                      <ArtifactVersionSelect value={artifactVersions} onChange={setArtifactVersions} />
-                    </SettingsFieldRow>
-                    <SettingsFieldRow label="Answer trace retention">
-                      <RetentionSelect value={answerTraceRetention} options={dayRetentionOptions} onChange={(value) => {
-                        if (value !== null)
-                          setAnswerTraceRetention(value)
-                      }}
-                      />
-                    </SettingsFieldRow>
-                    <SettingsFieldRow label="Evidence cache retention">
-                      <RetentionSelect value={evidenceCacheRetention} options={dayRetentionOptions} onChange={(value) => {
-                        if (value !== null)
-                          setEvidenceCacheRetention(value)
-                      }}
-                      />
-                    </SettingsFieldRow>
-                    <SettingsFieldRow label="Inactive projection retention">
-                      <RetentionSelect value={inactiveProjectionRetention} options={dayRetentionOptions} onChange={(value) => {
-                        if (value !== null)
-                          setInactiveProjectionRetention(value)
-                      }}
-                      />
-                    </SettingsFieldRow>
-                    <SettingsFieldRow label="Session inactivity">
-                      <SessionInactivitySelect value={sessionInactivityMinutes} onChange={setSessionInactivityMinutes} />
-                    </SettingsFieldRow>
-                  </SettingsSection>
+                  <SettingsRetentionSection retention={retention} />
                 </>
               )}
-
-      {config.advanced && (
-        <>
-          <SettingsDivider />
-          <SettingsSection
-            title="Advanced"
-            description="Admin-only health checks and cleanup summaries."
-          >
-            <SettingsFieldRow label="Health check">
-              <div className="flex flex-col gap-y-2">
-                <p className="system-xs-regular text-text-tertiary">{config.advanced.healthCheckSummary}</p>
-                <Button variant="secondary" className="w-fit">
-                  Run health check
-                </Button>
-              </div>
-            </SettingsFieldRow>
-            <SettingsFieldRow label="Cleanup">
-              <div className="flex flex-col gap-y-2">
-                <p className="system-xs-regular text-text-tertiary">{config.advanced.cleanupSummary}</p>
-                <Button variant="secondary" className="w-fit">
-                  Review cleanup
-                </Button>
-              </div>
-            </SettingsFieldRow>
-          </SettingsSection>
-        </>
-      )}
 
       <SettingsDivider />
     </>

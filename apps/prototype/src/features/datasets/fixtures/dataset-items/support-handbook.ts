@@ -67,7 +67,6 @@ export const support_handbookItem: DatasetItem =
       { label: 'Missing evidence', value: '+2 this week', tone: 'warn' },
     ],
     qualityMissingTrend: '+2 this week',
-    commonFailureSources: ['refund-policy.md', 'pricing-legacy.html'],
     settingsConfig: {
       apiAccess: { serviceApiEnabled: true, externalApiEnabled: false },
       defaultRetrieval: {

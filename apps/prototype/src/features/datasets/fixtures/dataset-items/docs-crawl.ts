@@ -66,7 +66,6 @@ export const docs_crawlItem: DatasetItem =
       { label: 'Missing evidence', value: 'Stable', tone: 'neutral' },
     ],
     qualityMissingTrend: 'Stable',
-    commonFailureSources: ['docs.dify.ai', 'api-keys.md'],
     settingsConfig: {
       apiAccess: { serviceApiEnabled: true, externalApiEnabled: false },
       defaultRetrieval: {

@@ -63,7 +63,6 @@ export const release_notesItem: DatasetItem =
       { label: 'Missing evidence', value: 'None', tone: 'good' },
     ],
     qualityMissingTrend: 'None',
-    commonFailureSources: ['beta-notes.md'],
     settingsConfig: {
       apiAccess: { serviceApiEnabled: true, externalApiEnabled: false },
       defaultRetrieval: {

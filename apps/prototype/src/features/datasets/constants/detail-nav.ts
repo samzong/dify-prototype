@@ -12,6 +12,8 @@ import {
   RiFunctionAddLine,
   RiLinksFill,
   RiLinksLine,
+  RiShieldCheckFill,
+  RiShieldCheckLine,
 } from '@remixicon/react'
 import type { DatasetDetailTab, DatasetItem } from '../fixtures/items'
 
@@ -35,6 +37,7 @@ export const detailNavItems: NavItem[] = [
   },
   { id: 'evidence', label: 'Evidence', icon: RiFocus2Line, activeIcon: RiFocus2Fill },
   { id: 'quality', label: 'Quality', icon: RiBarChartLine, activeIcon: RiBarChartFill },
+  { id: 'operations', label: 'Operations', icon: RiShieldCheckLine, activeIcon: RiShieldCheckFill },
   { id: 'settings', label: 'Settings', icon: RiEqualizer2Line, activeIcon: RiEqualizer2Fill },
   {
     id: 'pipeline',
@@ -48,7 +51,7 @@ export const detailNavItems: NavItem[] = [
 export const pageMeta: Record<DatasetDetailTab, { title: string; description: string }> = {
   overview: {
     title: 'Overview',
-    description: 'Check whether this Knowledge can safely supply Apps and Workflows.',
+    description: 'Knowledge space API snapshots and workspace entry points.',
   },
   sources: {
     title: 'Sources',
@@ -56,19 +59,23 @@ export const pageMeta: Record<DatasetDetailTab, { title: string; description: st
   },
   documents: {
     title: 'Documents',
-    description: 'Review document assets, parser status, index inclusion, and evidence use.',
+    description: 'Browse knowledge assets, inspect indexed content, and search across the knowledge base.',
   },
   evidence: {
     title: 'Evidence',
-    description: 'Test whether retrieved evidence is enough to support an answer.',
+    description: 'Run research tasks and quick retrieval tests to validate answers and evidence coverage.',
   },
   quality: {
     title: 'Quality',
-    description: 'Track answer traces, bad cases, and golden questions over time.',
+    description: 'Manage golden questions, production bad cases, and answer trace history.',
+  },
+  operations: {
+    title: 'Operations',
+    description: 'Run fsck, staged-object GC, lease review, and staged commit recovery.',
   },
   settings: {
     title: 'Knowledge settings',
-    description: 'Manage basic info, API access, default retrieval, processing policy, retention, and admin health summaries.',
+    description: 'Manage basic info, API access, default retrieval, processing policy, and retention.',
   },
   pipeline: {
     title: 'Pipeline',

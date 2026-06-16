@@ -2,8 +2,12 @@ import { Button } from '@langgenius/dify-ui/button'
 import { Input } from '@langgenius/dify-ui/input'
 import { Textarea } from '@langgenius/dify-ui/textarea'
 import { RiArrowLeftLine } from '@remixicon/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { DatasetItem } from '../../fixtures/items'
+import {
+  isValidKnowledgeSpaceSlug,
+  slugifyKnowledgeSpaceName,
+} from '../../fixtures/knowledge-space-bridge'
 import { sourceTypeLabels } from '../../fixtures/items'
 import { sourceProviderOptionsByType } from '../sources/SourcesView'
 import type { DatasetCreateInitialPath, DatasetCreateMode, DatasetStarterSource, FirstSourceDraft } from '../../types/create'
@@ -26,37 +30,61 @@ export function CreatePage({
 }: {
   mode: DatasetCreateMode
   onBack: () => void
-  onCreate: (item: DatasetItem) => void
+  onCreate: (payload: { draft: DatasetItem; slug: string }) => Promise<void>
 }) {
   const [initialPath, setInitialPath] = useState<DatasetCreateInitialPath>('empty')
   const [sourceDraft, setSourceDraft] = useState<FirstSourceDraft>(() => createDefaultFirstSourceDraft('website-crawl'))
   const [documentName, setDocumentName] = useState('')
   const [documentDrafts, setDocumentDrafts] = useState<string[]>([])
   const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [slugTouched, setSlugTouched] = useState(false)
   const [description, setDescription] = useState('')
   const [permission, setPermission] = useState('Workspace')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const normalizedPath = mode === 'external' ? 'empty' : initialPath
   const selectedProvider = sourceProviderOptionsByType[sourceDraft.type].find(option => option.value === sourceDraft.provider)
   const stagedDocumentNames = buildStagedDocumentNames(documentDrafts, documentName)
   const sourceReady = !!sourceDraft.name.trim() && (sourceDraft.type !== 'website-crawl' || !!sourceDraft.endpoint.trim())
   const documentsReady = stagedDocumentNames.length > 0
+  const slugValid = isValidKnowledgeSpaceSlug(slug)
   const canCreate = !!name.trim()
+    && slugValid
     && (normalizedPath !== 'source' || sourceReady)
     && (normalizedPath !== 'documents' || documentsReady)
+    && !submitting
   const primaryLabel = createPrimaryButtonLabels[mode === 'external' ? 'external' : normalizedPath]
 
-  const handleCreate = () => {
+  useEffect(() => {
+    if (slugTouched)
+      return
+    setSlug(slugifyKnowledgeSpaceName(name))
+  }, [name, slugTouched])
+
+  const handleCreate = async () => {
     if (!canCreate)
       return
-    onCreate(buildCreatedDataset({
-      mode,
-      initialPath: normalizedPath,
-      sourceDraft,
-      documentNames: stagedDocumentNames,
-      name,
-      description,
-      permission,
-    }))
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const draft = buildCreatedDataset({
+        mode,
+        initialPath: normalizedPath,
+        sourceDraft,
+        documentNames: stagedDocumentNames,
+        name,
+        description,
+        permission,
+      })
+      await onCreate({ draft, slug })
+    }
+    catch (cause) {
+      setSubmitError(cause instanceof Error ? cause.message : 'Create failed')
+    }
+    finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -73,10 +101,16 @@ export function CreatePage({
             <div className="system-xs-regular text-text-tertiary">Choose how this dataset receives data and retrieval behavior.</div>
           </div>
         </div>
-        <Button variant="primary" onClick={handleCreate} disabled={!canCreate}>
+        <Button variant="primary" loading={submitting} onClick={() => void handleCreate()} disabled={!canCreate}>
           {primaryLabel}
         </Button>
       </div>
+
+      {submitError && (
+        <div className="mx-12 rounded-xl border border-util-colors-warning-warning-500/30 bg-util-colors-warning-warning-50 px-4 py-3 system-sm-regular text-text-secondary dark:bg-util-colors-warning-warning-500/10">
+          {submitError}
+        </div>
+      )}
 
       <div className="grid gap-5 px-12 py-3 xl:grid-cols-[minmax(0,1fr)_360px]">
         <CreateDatasetBody
@@ -109,6 +143,21 @@ export function CreatePage({
                 onChange={event => setName(event.target.value)}
                 placeholder="e.g. Customer Support Handbook"
               />
+            </Field>
+            <Field label="Slug">
+              <Input
+                value={slug}
+                onChange={(event) => {
+                  setSlugTouched(true)
+                  setSlug(event.target.value)
+                }}
+                placeholder="customer-support-handbook"
+              />
+              {!slugValid && slug.trim() && (
+                <p className="mt-1 system-xs-regular text-util-colors-warning-warning-600">
+                  Use lowercase letters, numbers, and hyphens only.
+                </p>
+              )}
             </Field>
             <Field label="Description">
               <Textarea

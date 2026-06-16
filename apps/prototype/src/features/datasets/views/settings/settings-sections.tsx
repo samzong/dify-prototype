@@ -9,10 +9,13 @@ import {
 } from './settings-layout'
 import { SettingsInternalSections } from './settings-internal-section'
 
+import type { useRetentionSettings } from './useRetentionSettings'
+
 export type SettingsSectionProps = {
   item: DatasetItem
   isExternal: boolean
   config: DatasetItem['settingsConfig']
+  retention?: ReturnType<typeof useRetentionSettings>
   retrievalMode: RetrievalDepth
   setRetrievalMode: (value: RetrievalDepth) => void
   topK: number
@@ -35,18 +38,6 @@ export type SettingsSectionProps = {
   setIndexStrategy: (value: string) => void
   pipelineNote: string
   setPipelineNote: (value: string) => void
-  rawDocumentRetention: number | null
-  setRawDocumentRetention: (value: number | null) => void
-  artifactVersions: number
-  setArtifactVersions: (value: number) => void
-  answerTraceRetention: number
-  setAnswerTraceRetention: (value: number) => void
-  evidenceCacheRetention: number
-  setEvidenceCacheRetention: (value: number) => void
-  inactiveProjectionRetention: number
-  setInactiveProjectionRetention: (value: number) => void
-  sessionInactivityMinutes: number
-  setSessionInactivityMinutes: (value: number) => void
 }
 
 export function SettingsDatasetSections(props: SettingsSectionProps) {

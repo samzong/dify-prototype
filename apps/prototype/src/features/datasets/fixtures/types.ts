@@ -2,7 +2,7 @@ export type BadgeTone = 'good' | 'warn' | 'bad' | 'info' | 'neutral' | 'purple'
 
 export type EvidenceState = 'answerable' | 'partial' | 'conflict' | 'not-enough-evidence' | 'permission-limited'
 
-export type DatasetDetailTab = 'overview' | 'sources' | 'documents' | 'evidence' | 'quality' | 'settings' | 'pipeline'
+export type DatasetDetailTab = 'overview' | 'sources' | 'documents' | 'evidence' | 'quality' | 'operations' | 'settings' | 'pipeline'
 
 export type DatasetTask = {
   title: string
@@ -50,6 +50,14 @@ export type DatasetDocumentRow = {
   source: string
   parserStatus: DatasetDocumentParserStatus
   version: string
+  versionNumber?: number
+  mimeType?: string
+  objectKey?: string
+  sha256?: string
+  sizeBytes?: number
+  sourceId?: string
+  metadata?: Record<string, unknown>
+  compilationJobId?: string
   indexStatus: DatasetDocumentIndexStatus
   evidenceUse: string
   updatedAt: string
@@ -216,7 +224,6 @@ export type DatasetItem = {
   badCases: string[]
   qualityStats: { label: string; value: string; tone: BadgeTone }[]
   qualityMissingTrend: string
-  commonFailureSources: string[]
   settingsConfig: DatasetSettingsConfig
   defaultQuery: string
   evidenceTraceId: string

@@ -11,7 +11,9 @@ import {
   SelectValue,
 } from '@langgenius/dify-ui/select'
 import { RiAddLine, RiDraftLine, RiSearchLine } from '@remixicon/react'
+import type { KnowledgeFsFindResponse } from '../../api-types'
 import { evidenceUseTone, indexTone, parserTone, StatusBadge } from '../../components/badges'
+import { EmptyPanel } from '../../components/panel'
 import {
   documentIndexStatusLabels,
   documentParserStatusLabels,
@@ -19,7 +21,7 @@ import {
   documentStatusFilterOptions,
   type DatasetDocumentRow,
 } from '../../fixtures/items'
-import { DocumentRowActions, type BulkJob, bulkJobStageLabels } from './documents-helpers'
+import { DocumentRowActions, bulkJobStatusLabel, bulkJobStatusTone, type BulkJob } from './documents-helpers'
 
 export function DocumentsTablePanel({
   search,
@@ -34,6 +36,7 @@ export function DocumentsTablePanel({
   allVisibleSelected,
   toggleSelectAll,
   bulkJob,
+  onOpenBulkDrawer,
   setAddOpen,
   setMetadataOpen,
   updateDocument,
@@ -43,6 +46,14 @@ export function DocumentsTablePanel({
   setRenameValue,
   setDetailDoc,
   showToast,
+  onViewJob,
+  onViewArtifact,
+  knowledgeSearch,
+  setKnowledgeSearch,
+  knowledgeSearchResults,
+  knowledgeSearchLoading,
+  onKnowledgeSearch,
+  onOpenKnowledgeResult,
 }: {
   search: string
   setSearch: (value: string) => void
@@ -56,6 +67,7 @@ export function DocumentsTablePanel({
   allVisibleSelected: boolean
   toggleSelectAll: () => void
   bulkJob: BulkJob | null
+  onOpenBulkDrawer: () => void
   setAddOpen: (open: boolean) => void
   setMetadataOpen: (open: boolean) => void
   updateDocument: (id: string, patch: Partial<DatasetDocumentRow>) => void
@@ -65,9 +77,57 @@ export function DocumentsTablePanel({
   setRenameValue: (value: string) => void
   setDetailDoc: (doc: DatasetDocumentRow | null) => void
   showToast: (message: string) => void
+  onViewJob: (doc: DatasetDocumentRow) => void
+  onViewArtifact: (doc: DatasetDocumentRow) => void
+  knowledgeSearch: string
+  setKnowledgeSearch: (value: string) => void
+  knowledgeSearchResults: KnowledgeFsFindResponse | null
+  knowledgeSearchLoading: boolean
+  onKnowledgeSearch: () => void
+  onOpenKnowledgeResult: (name: string) => void
 }) {
   return (
     <>
+      <div className="rounded-xl border border-components-panel-border bg-components-panel-bg px-4 py-3 shadow-xs">
+        <div className="system-xs-semibold-uppercase text-text-tertiary">Search in knowledge</div>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[240px] flex-1">
+            <RiSearchLine className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-text-quaternary" />
+            <Input
+              value={knowledgeSearch}
+              onChange={event => setKnowledgeSearch(event.target.value)}
+              onKeyDown={event => {
+                if (event.key === 'Enter')
+                  onKnowledgeSearch()
+              }}
+              placeholder="Find content across indexed knowledge"
+              className="pl-8"
+              aria-label="Search in knowledge"
+            />
+          </div>
+          <Button variant="secondary" size="small" loading={knowledgeSearchLoading} onClick={onKnowledgeSearch}>
+            Search
+          </Button>
+        </div>
+        {knowledgeSearchResults && (
+          <div className="mt-3 space-y-2">
+            {knowledgeSearchResults.items.length
+              ? knowledgeSearchResults.items.map(item => (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => onOpenKnowledgeResult(item.name)}
+                    className="flex w-full items-center justify-between gap-3 rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-2 text-left hover:bg-state-base-hover"
+                  >
+                    <span className="truncate system-sm-semibold text-text-secondary">{item.name}</span>
+                    <span className="shrink-0 system-xs-regular text-text-quaternary">{item.path}</span>
+                  </button>
+                ))
+              : <EmptyPanel text="No matching knowledge assets." />}
+          </div>
+        )}
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Select
@@ -145,18 +205,33 @@ export function DocumentsTablePanel({
       )}
 
       {bulkJob && (
-        <div className="rounded-xl border border-components-panel-border bg-components-panel-bg px-4 py-3 shadow-xs">
+        <button
+          type="button"
+          onClick={onOpenBulkDrawer}
+          className="w-full rounded-xl border border-components-panel-border bg-components-panel-bg px-4 py-3 text-left shadow-xs hover:bg-state-base-hover"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="system-sm-semibold text-text-secondary">Bulk re-index job {bulkJob.id}</div>
+              <div className="system-sm-semibold text-text-secondary">
+                {bulkJob.kind === 'bulk' ? 'Bulk re-index job' : 'Compilation job'}
+                {' '}
+                {bulkJob.id}
+              </div>
               <div className="mt-1 system-xs-regular text-text-tertiary">
                 {bulkJob.completed}
                 {' / '}
                 {bulkJob.total}
                 {' documents'}
+                {bulkJob.failedItemIds && bulkJob.failedItemIds.length > 0 && (
+                  <span>
+                    {' · '}
+                    {bulkJob.failedItemIds.length}
+                    {' failed'}
+                  </span>
+                )}
               </div>
             </div>
-            <StatusBadge label={bulkJobStageLabels[bulkJob.stage]} tone={bulkJob.stage === 'published' ? 'good' : 'info'} />
+            <StatusBadge label={bulkJobStatusLabel(bulkJob)} tone={bulkJobStatusTone(bulkJob)} />
           </div>
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-background-default-dimmed">
             <div
@@ -164,7 +239,7 @@ export function DocumentsTablePanel({
               style={{ width: `${Math.min(100, Math.round((bulkJob.completed / Math.max(1, bulkJob.total)) * 100))}%` }}
             />
           </div>
-        </div>
+        </button>
       )}
 
       <div className="overflow-hidden rounded-xl border border-components-panel-border bg-components-panel-bg shadow-xs">
@@ -221,6 +296,8 @@ export function DocumentsTablePanel({
                           }}
                           onOpen={() => setDetailDoc(doc)}
                           onSettings={() => setDetailDoc(doc)}
+                          onViewJob={() => onViewJob(doc)}
+                          onViewArtifact={() => onViewArtifact(doc)}
                         />
                       </td>
                     </tr>

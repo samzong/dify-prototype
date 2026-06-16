@@ -1,5 +1,11 @@
 import { Button } from '@langgenius/dify-ui/button'
 import { cn } from '@langgenius/dify-ui/cn'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@langgenius/dify-ui/dropdown-menu'
 import { Input } from '@langgenius/dify-ui/input'
 import {
   RiAddLine,
@@ -7,6 +13,7 @@ import {
   RiCloseCircleFill,
   RiFileTextFill,
   RiFunctionAddLine,
+  RiMoreFill,
   RiRobot2Fill,
   RiSearchLine,
 } from '@remixicon/react'
@@ -84,7 +91,17 @@ export function CreateOption({
   )
 }
 
-export function ListCard({ item, onOpen }: { item: DatasetItem; onOpen: () => void }) {
+export function ListCard({
+  item,
+  onOpen,
+  onDelete,
+  deleting,
+}: {
+  item: DatasetItem
+  onOpen: () => void
+  onDelete?: () => void
+  deleting?: boolean
+}) {
   const attentionSignals = (item.listHints?.length
     ? [
         ...item.listHints,
@@ -99,11 +116,12 @@ export function ListCard({ item, onOpen }: { item: DatasetItem; onOpen: () => vo
       ]).filter(Boolean) as string[]
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group relative col-span-1 flex h-47.5 cursor-pointer flex-col rounded-xl border-[0.5px] border-solid border-components-card-border bg-components-card-bg text-left shadow-xs shadow-shadow-shadow-3 transition-all duration-200 ease-in-out hover:shadow-md hover:shadow-shadow-shadow-5"
-    >
+    <div className="relative w-full min-w-0">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="group relative flex h-47.5 w-full min-w-0 cursor-pointer flex-col rounded-xl border-[0.5px] border-solid border-components-card-border bg-components-card-bg text-left shadow-xs shadow-shadow-shadow-3 transition-all duration-200 ease-in-out hover:shadow-md hover:shadow-shadow-shadow-5"
+      >
       {item.cornerLabel && (
         <div className="absolute top-0 right-0 z-5 rounded-tr-xl rounded-bl-lg bg-components-badge-bg-blue-solid px-2 py-0.5 system-2xs-medium-uppercase text-text-primary-on-surface">
           {item.cornerLabel}
@@ -172,7 +190,26 @@ export function ListCard({ item, onOpen }: { item: DatasetItem; onOpen: () => vo
         <span className="system-xs-regular text-divider-deep">/</span>
         <span className="system-xs-regular">{item.updatedAt}</span>
       </div>
-    </button>
+      </button>
+      {onDelete && (
+        <div className="absolute top-3 right-3 z-10">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="Knowledge actions"
+              className="inline-flex size-8 items-center justify-center rounded-lg bg-components-card-bg/90 text-text-tertiary shadow-xs hover:bg-state-base-hover"
+              onClick={event => event.stopPropagation()}
+            >
+              <RiMoreFill className="size-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent placement="bottom-end">
+              <DropdownMenuItem disabled={deleting} onClick={onDelete}>
+                {deleting ? 'Deleting…' : 'Delete knowledge space'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+    </div>
   )
 }
 
