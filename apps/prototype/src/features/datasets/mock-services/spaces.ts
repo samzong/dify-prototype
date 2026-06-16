@@ -2,6 +2,7 @@ import type { KnowledgeSpace, KnowledgeSpaceList, KnowledgeSpaceManifest, Knowle
 import { MockServiceError } from '../api-types'
 import { PROTOTYPE_TENANT_ID } from '../fixtures/scenarios'
 import { delay } from './helpers'
+import { manifestForSpace, statsForSpace, statusForSpace } from './seed'
 import { getKnowledgeMockStore, mutateKnowledgeMockStore } from './store'
 
 export async function listKnowledgeSpaces(options?: { cursor?: string; limit?: number }) {
@@ -46,8 +47,11 @@ export async function createKnowledgeSpace(input: { name: string; slug: string; 
     updatedAt: now,
   }
 
-  mutateKnowledgeMockStore(draft => {
+  mutateKnowledgeMockStore((draft) => {
     draft.spaces.unshift(space)
+    draft.manifestsBySpaceId[space.id] = manifestForSpace(space.id, space.slug)
+    draft.statusBySpaceId[space.id] = statusForSpace(space.id)
+    draft.statsBySpaceId[space.id] = statsForSpace(space.id, 0)
   })
 
   return cloneSpace(space)

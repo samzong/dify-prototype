@@ -1,10 +1,15 @@
 import type { KnowledgeScenarioBundle } from '../fixtures/scenarios'
 import { resolveScenario } from '../fixtures/scenarios'
 import { cloneJson } from './helpers'
+import { seedScenarioFromFixtures } from './seed'
 import { getActiveKnowledgeScenario } from './scenario'
 
+function materializeScenario(scenarioId: ReturnType<typeof getActiveKnowledgeScenario>) {
+  return seedScenarioFromFixtures(cloneJson(resolveScenario(scenarioId)))
+}
+
 let activeScenarioId = getActiveKnowledgeScenario()
-let store = cloneJson(resolveScenario(activeScenarioId))
+let store = materializeScenario(activeScenarioId)
 
 function syncFromActiveScenario() {
   const nextId = getActiveKnowledgeScenario()
@@ -12,7 +17,7 @@ function syncFromActiveScenario() {
     return
 
   activeScenarioId = nextId
-  store = cloneJson(resolveScenario(nextId))
+  store = materializeScenario(nextId)
 }
 
 export function getKnowledgeMockStore(): KnowledgeScenarioBundle {
@@ -22,7 +27,7 @@ export function getKnowledgeMockStore(): KnowledgeScenarioBundle {
 
 export function resetKnowledgeMockStore(scenarioId = getActiveKnowledgeScenario()) {
   activeScenarioId = scenarioId
-  store = cloneJson(resolveScenario(scenarioId))
+  store = materializeScenario(scenarioId)
   return store
 }
 

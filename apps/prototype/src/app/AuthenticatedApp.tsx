@@ -1,7 +1,7 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
-import { datasetItems as initialDatasetItems } from '../features/datasets/fixtures/dataset-items'
+import { lazy, Suspense, useEffect } from 'react'
 import type { DatasetDetailTab } from '../features/datasets/fixtures/types'
-import type { DatasetItem } from '../features/datasets/fixtures/types'
+import { useKnowledgeSpaceCatalog } from '../features/datasets/hooks/useKnowledgeSpaceCatalog'
+import { resolveKnowledgeSpaceId } from '../features/datasets/fixtures/knowledge-space-bridge'
 import type { SettingsTab } from '../features/settings/types'
 import { detailTabToPath } from '../routing/dataset-routes'
 import type { PrototypeRoute } from '../routing/prototype-location'
@@ -34,7 +34,7 @@ export function AuthenticatedApp({
   onAppearanceChange: (mode: AppearanceMode) => void
   onSignOut: () => void
 }) {
-  const [datasetItems, setDatasetItems] = useState<DatasetItem[]>(() => initialDatasetItems)
+  const knowledgeCatalog = useKnowledgeSpaceCatalog()
 
   const activeSection: MainSection = route.section === 'datasets'
     ? 'datasets'
@@ -62,12 +62,14 @@ export function AuthenticatedApp({
   }
 
   const goToDatasetDetail = (datasetId: string, tab: DatasetDetailTab = 'overview') => {
+    const spaceId = resolveKnowledgeSpaceId(datasetId)
     onNavigate({
       route: {
         section: 'datasets',
-        datasetScreen: { kind: 'detail', datasetId, tab: detailTabToPath(tab) },
+        datasetScreen: { kind: 'detail', datasetId: spaceId, tab: detailTabToPath(tab) },
       },
       settingsTab,
+      replace: datasetId !== spaceId,
     })
   }
 
@@ -110,7 +112,7 @@ export function AuthenticatedApp({
           else if (section === 'datasets')
             goToDatasetList()
         }}
-        datasetItems={datasetItems}
+        datasetItems={knowledgeCatalog.items}
         onGoToDatasetList={goToDatasetList}
         onSelectDataset={id => goToDatasetDetail(id)}
         onOpenDatasetCreate={goToDatasetCreate}
@@ -139,17 +141,30 @@ export function AuthenticatedApp({
             <Suspense fallback={<RouteFallback />}>
               <DatasetsSection
                 screen={datasetScreen}
-                items={datasetItems}
+                catalog={knowledgeCatalog}
                 onOpenList={goToDatasetList}
                 onOpenDetail={id => goToDatasetDetail(id)}
                 onOpenCreate={goToDatasetCreate}
                 onTabChange={(id, tab) => goToDatasetDetail(id, tab)}
                 onUpdateDataset={(id, updater) => {
-                  setDatasetItems(current => current.map(item => item.id === id ? updater(item) : item))
+                  const current = knowledgeCatalog.resolveItem(id)
+                  if (!current)
+                    return
+                  knowledgeCatalog.upsertItem(updater(current))
                 }}
-                onCreateDataset={(item) => {
-                  setDatasetItems(current => [item, ...current])
+                onCreateDataset={async ({ draft, slug }) => {
+                  const item = await knowledgeCatalog.createSpace({
+                    name: draft.name,
+                    slug,
+                    description: draft.description,
+                    draft,
+                  })
                   goToDatasetDetail(item.id)
+                }}
+                onDeleteDataset={async (id) => {
+                  await knowledgeCatalog.removeSpace(id)
+                  if (route.section === 'datasets' && route.datasetScreen.kind === 'detail' && route.datasetScreen.datasetId === resolveKnowledgeSpaceId(id))
+                    goToDatasetList()
                 }}
               />
             </Suspense>

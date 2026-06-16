@@ -1,22 +1,84 @@
 import { Button } from '@langgenius/dify-ui/button'
-import { Dialog, DialogCloseButton, DialogContent, DialogTitle } from '@langgenius/dify-ui/dialog'
 import { RiPlayLine } from '@remixicon/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { MockServiceError } from '../api-types'
+import {
+  getKnowledgeSpace,
+  getKnowledgeSpaceManifest,
+  getKnowledgeSpaceStats,
+  getKnowledgeSpaceStatus,
+} from '../mock-services'
 import { StatusBadge } from '../components/badges'
 import type { DatasetItem, DatasetDetailTab } from '../fixtures/items'
+import type {
+  KnowledgeSpace,
+  KnowledgeSpaceManifest,
+  KnowledgeSpaceStats,
+  KnowledgeSpaceStatus,
+} from '../api-types'
 import { ActionToast, EmptyPanel, Panel, TaskRow } from '../components/panel'
+import { OverviewApiPanels, OverviewSpaceMeta } from './overview/OverviewApiPanels'
+import { OverviewDialogs } from './overview/OverviewDialogs'
+import { OverviewRuntimeRiskBanner } from './overview/OverviewRuntimeRiskBanner'
 
 export function OverviewView({
   item,
   onNavigate,
+  onDelete,
 }: {
   item: DatasetItem
   onNavigate: (tab: DatasetDetailTab) => void
+  onDelete?: (spaceId: string) => Promise<void>
 }) {
   const [workflowOpen, setWorkflowOpen] = useState(false)
   const [rebuildOpen, setRebuildOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [tasks, setTasks] = useState(() => item.tasks.map(task => ({ ...task })))
   const [toast, setToast] = useState('')
+  const [space, setSpace] = useState<KnowledgeSpace | null>(null)
+  const [manifest, setManifest] = useState<KnowledgeSpaceManifest | null>(null)
+  const [status, setStatus] = useState<KnowledgeSpaceStatus | null>(null)
+  const [stats, setStats] = useState<KnowledgeSpaceStats | null>(null)
+  const [apiLoading, setApiLoading] = useState(true)
+  const [apiError, setApiError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadApiSummary() {
+      setApiLoading(true)
+      setApiError(null)
+      try {
+        const [spaceResult, manifestResult, statusResult, statsResult] = await Promise.all([
+          getKnowledgeSpace(item.id),
+          getKnowledgeSpaceManifest(item.id),
+          getKnowledgeSpaceStatus(item.id),
+          getKnowledgeSpaceStats(item.id),
+        ])
+        if (cancelled)
+          return
+        setSpace(spaceResult)
+        setManifest(manifestResult)
+        setStatus(statusResult)
+        setStats(statsResult)
+      }
+      catch (cause) {
+        if (cancelled)
+          return
+        setApiError(cause instanceof MockServiceError ? cause.message : 'Failed to load knowledge space summary')
+      }
+      finally {
+        if (!cancelled)
+          setApiLoading(false)
+      }
+    }
+
+    void loadApiSummary()
+    return () => {
+      cancelled = true
+    }
+  }, [item.id])
 
   const showToast = (message: string) => {
     setToast(message)
@@ -27,6 +89,22 @@ export function OverviewView({
     setTasks(current => [{ title: 'Rebuild index', detail: 'Projection rebuild queued for latest source snapshot', tone: 'info' as const }, ...current])
     setRebuildOpen(false)
     showToast('Index rebuild started.')
+  }
+
+  const handleDelete = async () => {
+    if (!onDelete)
+      return
+    setDeleting(true)
+    try {
+      await onDelete(item.id)
+      setDeleteOpen(false)
+    }
+    catch (cause) {
+      showToast(cause instanceof MockServiceError ? cause.message : 'Delete failed.')
+    }
+    finally {
+      setDeleting(false)
+    }
   }
 
   const taskDestination = (title: string): DatasetDetailTab | undefined => {
@@ -69,6 +147,9 @@ export function OverviewView({
               <StatusBadge label={item.apiEnabled ? 'Service API on' : 'Service API off'} tone={item.apiEnabled ? 'good' : 'warn'} />
               <StatusBadge label={item.usageLabel} tone="info" />
             </div>
+            <div className="mt-3">
+              <OverviewSpaceMeta spaceId={item.id} slug={space?.slug} tenantId={space?.tenantId} />
+            </div>
           </div>
           <div className="text-right">
             <div className="system-2xs-medium-uppercase text-text-tertiary">Updated</div>
@@ -89,7 +170,18 @@ export function OverviewView({
           Run evidence test
         </Button>
         <Button variant="secondary" size="small" onClick={() => setWorkflowOpen(true)}>Connect to Workflow</Button>
+        {onDelete && (
+          <Button variant="secondary" size="small" onClick={() => setDeleteOpen(true)}>Delete</Button>
+        )}
       </div>
+
+      <OverviewApiPanels
+        manifest={manifest}
+        status={status}
+        stats={stats}
+        loading={apiLoading}
+        error={apiError}
+      />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {item.statusBlocks.map(block => (
@@ -152,86 +244,26 @@ export function OverviewView({
         </Panel>
       </div>
 
-      <RuntimeRiskBanner item={item} onNavigate={onNavigate} />
+      <OverviewRuntimeRiskBanner item={item} onNavigate={onNavigate} />
 
-      <Dialog open={rebuildOpen} onOpenChange={setRebuildOpen}>
-        <DialogContent className="w-[480px] max-w-[calc(100vw-2rem)]">
-          <DialogCloseButton />
-          <DialogTitle className="system-md-semibold text-text-secondary">Rebuild index</DialogTitle>
-          <p className="mt-2 system-sm-regular text-text-tertiary">
-            Queue a new projection publish from the latest source snapshot. Apps and workflows may see stale answers until publish completes.
-          </p>
-          <div className="mt-6 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setRebuildOpen(false)}>Cancel</Button>
-            <Button variant="primary" onClick={handleRebuild}>Rebuild index</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={workflowOpen} onOpenChange={setWorkflowOpen}>
-        <DialogContent className="w-[520px] max-w-[calc(100vw-2rem)]">
-          <DialogCloseButton />
-          <DialogTitle className="system-md-semibold text-text-secondary">Connect to Workflow</DialogTitle>
-          <p className="mt-2 system-sm-regular text-text-tertiary">Select a workflow to attach this knowledge base as a retrieval context.</p>
-          <div className="mt-4 space-y-2">
-            {item.connectedWorkflows.map(workflow => (
-              <button
-                key={workflow}
-                type="button"
-                className="flex w-full items-center justify-between rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-2 text-left hover:bg-state-base-hover"
-                onClick={() => {
-                  setWorkflowOpen(false)
-                  showToast(`Connected to ${workflow}.`)
-                }}
-              >
-                <span className="system-sm-medium text-text-secondary">{workflow}</span>
-                <StatusBadge label="Connect" tone="info" />
-              </button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <OverviewDialogs
+        item={item}
+        rebuildOpen={rebuildOpen}
+        workflowOpen={workflowOpen}
+        deleteOpen={deleteOpen}
+        deleting={deleting}
+        onRebuildOpenChange={setRebuildOpen}
+        onWorkflowOpenChange={setWorkflowOpen}
+        onDeleteOpenChange={setDeleteOpen}
+        onRebuild={handleRebuild}
+        onDelete={() => void handleDelete()}
+        onWorkflowConnect={(workflow) => {
+          setWorkflowOpen(false)
+          showToast(`Connected to ${workflow}.`)
+        }}
+      />
 
       <ActionToast message={toast} visible={!!toast} />
-    </div>
-  )
-}
-
-function RuntimeRiskBanner({
-  item,
-  onNavigate,
-}: {
-  item: DatasetItem
-  onNavigate: (tab: DatasetDetailTab) => void
-}) {
-  const risks: { text: string; tab?: DatasetDetailTab }[] = [
-    item.indexStatus === 'Stale' && { text: 'Stale index may return outdated answers.', tab: 'documents' },
-    item.indexStatus === 'Building' && { text: 'Index is still building. Workflow retrieval may be incomplete.', tab: 'documents' },
-    item.blockers.some(blocker => blocker.title.toLowerCase().includes('conflict')) && { text: 'Evidence conflict detected.', tab: 'evidence' },
-    item.type === 'Multimodal' && { text: 'Attachment variable required for image retrieval.', tab: 'settings' },
-    item.type === 'External' && { text: 'External score normalization or rerank recommended.', tab: 'settings' },
-  ].filter(Boolean) as { text: string; tab?: DatasetDetailTab }[]
-
-  if (!risks.length)
-    return null
-
-  return (
-    <div className="rounded-xl border border-components-panel-border bg-background-default-subtle p-4">
-      <div className="system-xs-semibold-uppercase text-text-tertiary">Workflow runtime risks</div>
-      <ul className="mt-2 space-y-1">
-        {risks.map(risk => (
-          <li key={risk.text}>
-            <button
-              type="button"
-              className="flex w-full items-start gap-2 text-left system-sm-regular text-text-secondary hover:text-text-accent"
-              onClick={() => risk.tab && onNavigate(risk.tab)}
-            >
-              <span className="mt-1 size-1.5 shrink-0 rounded-full bg-util-colors-warning-warning-500" />
-              {risk.text}
-            </button>
-          </li>
-        ))}
-      </ul>
     </div>
   )
 }

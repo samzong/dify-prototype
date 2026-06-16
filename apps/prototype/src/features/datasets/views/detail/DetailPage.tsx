@@ -15,11 +15,13 @@ export function DetailPage({
   activeTab,
   onTabChange,
   onUpdateDataset,
+  onDeleteKnowledge,
 }: {
   item: DatasetItem
   activeTab: DatasetDetailTab
   onTabChange: (tab: DatasetDetailTab) => void
   onUpdateDataset: (id: string, updater: (item: DatasetItem) => DatasetItem) => void
+  onDeleteKnowledge?: (spaceId: string) => Promise<void>
 }) {
   const navItems = detailNavItems.filter(entry => !entry.hidden?.(item))
   const meta = pageMeta[activeTab]
@@ -31,7 +33,9 @@ export function DetailPage({
         <div className="flex min-h-full flex-col py-3 pl-6">
           <PageHeader title={meta.title} description={meta.description} />
           <div className="min-h-0 flex-1">
-            {activeTab === 'overview' && <OverviewView item={item} onNavigate={onTabChange} />}
+            {activeTab === 'overview' && (
+              <OverviewView item={item} onNavigate={onTabChange} onDelete={onDeleteKnowledge} />
+            )}
             {activeTab === 'sources' && (
               <SourcesView
                 item={item}
