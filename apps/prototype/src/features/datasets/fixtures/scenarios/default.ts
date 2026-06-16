@@ -454,6 +454,10 @@ export function createDefaultScenario(): KnowledgeScenarioBundle {
           question: 'Refund after SSO activation',
           traceIds: [PROTOTYPE_TRACE_IDS.partialRefund],
           tags: ['billing'],
+          metadata: {
+            status: 'investigating',
+            reason: 'Refund policy answer omitted enterprise SSO exception',
+          },
           createdAt: isoAt(86400000 * 3),
           updatedAt: isoAt(86400000),
         },

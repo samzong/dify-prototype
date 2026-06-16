@@ -10,6 +10,8 @@ import { MockServiceError } from '../../api-types'
 import type { DatasetItem, EvidenceState, RetrievalDepthOption } from '../../fixtures/items'
 import { resolveKnowledgeSpaceId } from '../../fixtures/knowledge-space-bridge'
 import {
+  createGoldenQuestion,
+  createProductionBadCase,
   getQueryTrace,
   runQuery,
 } from '../../mock-services'
@@ -45,8 +47,6 @@ export function useEvidenceController(item: DatasetItem) {
   const [bundleState, setBundleState] = useState<EvidenceState>(item.evidenceState)
   const [traceId, setTraceId] = useState(item.evidenceTraceId)
   const [freshness, setFreshness] = useState(item.evidenceFreshness)
-  const [badCases, setBadCases] = useState(item.badCases)
-  const [goldenQuestions, setGoldenQuestions] = useState(item.goldenQuestions)
   const [trace, setTrace] = useState<AnswerTrace | null>(null)
   const [bundle, setBundle] = useState<EvidenceBundle | null>(null)
   const [streamSteps, setStreamSteps] = useState<AnswerTraceStep[]>([])
@@ -133,18 +133,53 @@ export function useEvidenceController(item: DatasetItem) {
     }
   }
 
-  const createBadCaseFromTrace = (labelTraceId = traceId) => {
-    const label = `Trace ${labelTraceId}`
-    if (!badCases.includes(label))
-      setBadCases(current => [label, ...current])
-    showToast('Bad case created from trace.')
+  const createBadCaseFromTrace = async (labelTraceId = traceId) => {
+    if (!labelTraceId) {
+      showToast('Run an evidence test before creating a bad case.')
+      return
+    }
+
+    try {
+      await createProductionBadCase(spaceId, { traceId: labelTraceId })
+      showToast('Bad case created from trace.')
+    }
+    catch (error) {
+      showToast(mockErrorMessage(error))
+    }
   }
 
-  const createBadCaseFromMissing = (entry: MissingEvidenceItem) => {
-    const label = entry.text
-    if (!badCases.includes(label))
-      setBadCases(current => [label, ...current])
-    showToast('Bad case created from missing evidence.')
+  const createBadCaseFromMissing = async (entry: MissingEvidenceItem) => {
+    if (!traceId) {
+      showToast('Run an evidence test before creating a bad case.')
+      return
+    }
+
+    try {
+      await createProductionBadCase(spaceId, {
+        traceId,
+        reason: `${entry.reason}: ${entry.text}`,
+      })
+      showToast('Bad case created from missing evidence.')
+    }
+    catch (error) {
+      showToast(mockErrorMessage(error))
+    }
+  }
+
+  const createGoldenQuestionFromQuery = async (question: string) => {
+    const trimmed = question.trim()
+    if (!trimmed) {
+      showToast('Enter a query before creating a golden question.')
+      return
+    }
+
+    try {
+      await createGoldenQuestion(spaceId, { question: trimmed })
+      showToast('Golden question created.')
+    }
+    catch (error) {
+      showToast(mockErrorMessage(error))
+    }
   }
 
   const dismissMissingEvidence = (entry: MissingEvidenceItem) => {
@@ -171,9 +206,6 @@ export function useEvidenceController(item: DatasetItem) {
     bundleState,
     traceId,
     freshness,
-    badCases,
-    goldenQuestions,
-    setGoldenQuestions,
     trace,
     bundle,
     streamSteps,
@@ -191,6 +223,7 @@ export function useEvidenceController(item: DatasetItem) {
     openTraceDrawer,
     createBadCaseFromTrace,
     createBadCaseFromMissing,
+    createGoldenQuestionFromQuery,
     dismissMissingEvidence,
     loadTraceDetails,
   }

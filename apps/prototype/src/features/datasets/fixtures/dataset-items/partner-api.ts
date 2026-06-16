@@ -53,7 +53,6 @@ export const partner_apiItem: DatasetItem =
       { label: 'Missing evidence', value: 'None', tone: 'good' },
     ],
     qualityMissingTrend: 'None',
-    commonFailureSources: [],
     settingsConfig: {
       apiAccess: { serviceApiEnabled: false, externalApiEnabled: true },
       externalRetrieval: {

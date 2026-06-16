@@ -4,7 +4,33 @@ import type {
   KnowledgeSpaceStatus,
   ProjectionSummary,
 } from '../../api-types'
-import type { BadgeTone, DatasetDetailTab } from '../../fixtures/types'
+import type { BadgeTone, DatasetDetailTab, DatasetItem } from '../../fixtures/types'
+
+export type OverviewQualitySignals = {
+  conflictCount: number
+  goldenQuestionCount: number
+  evidenceState: DatasetItem['evidenceState']
+  missingEvidenceCount: number
+  conflictingEvidenceCount: number
+  partialTraceCount: number
+  conflictTraceCount: number
+}
+
+export function buildOverviewQualitySignals(
+  item: DatasetItem,
+  conflictCount: number,
+  goldenQuestionCount: number,
+): OverviewQualitySignals {
+  return {
+    conflictCount,
+    goldenQuestionCount,
+    evidenceState: item.evidenceState,
+    missingEvidenceCount: item.missingEvidence.length,
+    conflictingEvidenceCount: item.conflictingEvidence.length,
+    partialTraceCount: item.traces.filter(trace => trace.state === 'partial').length,
+    conflictTraceCount: item.traces.filter(trace => trace.state === 'conflict').length,
+  }
+}
 
 export type OverviewAttentionItem = {
   text: string
@@ -25,6 +51,7 @@ export function buildOverviewReadinessView(
   manifest: KnowledgeSpaceManifest,
   status: KnowledgeSpaceStatus,
   stats: KnowledgeSpaceStats,
+  qualitySignals?: OverviewQualitySignals,
 ): OverviewReadinessView {
   const stale = sumProjectionField(status.index.summaries, 'stale')
   const building = sumProjectionField(status.index.summaries, 'building')
@@ -34,7 +61,10 @@ export function buildOverviewReadinessView(
 
   const verdict = buildVerdict(status, stats, { stale, building, failed })
 
-  const attention = buildAttentionItems(status, stats, { stale, building })
+  const attention = [
+    ...buildQualityAttentionItems(qualitySignals),
+    ...buildAttentionItems(status, stats, { stale, building }),
+  ]
 
   const policySummary = [
     `${humanParserLabel(status.parser.kind)} with ${manifest.parserPolicyVersion}.`,
@@ -200,6 +230,61 @@ function buildAttentionItems(
       tone: 'warn',
       tab: 'operations',
       actionLabel: 'Operations',
+    })
+  }
+
+  return items
+}
+
+function buildQualityAttentionItems(signals?: OverviewQualitySignals): OverviewAttentionItem[] {
+  if (!signals)
+    return []
+
+  const items: OverviewAttentionItem[] = []
+  const conflictSignals = Math.max(signals.conflictCount, signals.conflictTraceCount)
+
+  if (conflictSignals > 0) {
+    items.push({
+      text: `${conflictSignals} answer trace${conflictSignals === 1 ? '' : 's'} with evidence conflicts.`,
+      tone: 'bad',
+      tab: 'quality',
+      actionLabel: 'Quality',
+    })
+  }
+  else if (signals.evidenceState === 'conflict' || signals.conflictingEvidenceCount > 0) {
+    items.push({
+      text: signals.conflictingEvidenceCount > 0
+        ? `${signals.conflictingEvidenceCount} conflicting evidence report${signals.conflictingEvidenceCount === 1 ? '' : 's'} need review.`
+        : 'Knowledge evidence is in conflict state.',
+      tone: 'bad',
+      tab: 'evidence',
+      actionLabel: 'Evidence',
+    })
+  }
+
+  if (signals.missingEvidenceCount > 0 || signals.partialTraceCount > 0) {
+    const parts = [
+      signals.missingEvidenceCount > 0
+        ? `${signals.missingEvidenceCount} missing evidence gap${signals.missingEvidenceCount === 1 ? '' : 's'}`
+        : null,
+      signals.partialTraceCount > 0
+        ? `${signals.partialTraceCount} partial trace${signals.partialTraceCount === 1 ? '' : 's'}`
+        : null,
+    ].filter(Boolean)
+    items.push({
+      text: `${parts.join('; ')} — run an evidence test to inspect retrieval gaps.`,
+      tone: 'warn',
+      tab: 'evidence',
+      actionLabel: 'Evidence',
+    })
+  }
+
+  if (signals.goldenQuestionCount > 0 && (signals.partialTraceCount > 0 || signals.missingEvidenceCount > 0 || conflictSignals > 0)) {
+    items.push({
+      text: `${signals.goldenQuestionCount} golden question${signals.goldenQuestionCount === 1 ? '' : 's'} may need updated expected evidence.`,
+      tone: 'warn',
+      tab: 'quality',
+      actionLabel: 'Quality',
     })
   }
 

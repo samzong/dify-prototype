@@ -9,7 +9,7 @@ import type {
 import { StatusBadge } from '../../components/badges'
 import { EmptyPanel, Panel } from '../../components/panel'
 import type { BadgeTone, DatasetDetailTab } from '../../fixtures/items'
-import { buildOverviewReadinessView } from './overview-api-summary'
+import { buildOverviewReadinessView, type OverviewQualitySignals } from './overview-api-summary'
 import { OverviewTechnicalDetails } from './OverviewTechnicalDetails'
 
 const kpiHintClasses: Record<BadgeTone, string> = {
@@ -43,6 +43,7 @@ export function OverviewReadinessDashboard({
   manifest,
   status,
   stats,
+  qualitySignals,
   loading,
   error,
   onNavigate,
@@ -50,6 +51,7 @@ export function OverviewReadinessDashboard({
   manifest: KnowledgeSpaceManifest | null
   status: KnowledgeSpaceStatus | null
   stats: KnowledgeSpaceStats | null
+  qualitySignals: OverviewQualitySignals | null
   loading: boolean
   error: string | null
   onNavigate: (tab: DatasetDetailTab) => void
@@ -75,7 +77,7 @@ export function OverviewReadinessDashboard({
   if (!manifest || !status || !stats)
     return null
 
-  const view = buildOverviewReadinessView(manifest, status, stats)
+  const view = buildOverviewReadinessView(manifest, status, stats, qualitySignals ?? undefined)
 
   return (
     <div className="space-y-3">

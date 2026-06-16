@@ -1,10 +1,20 @@
 import type {
   AnswerTrace,
+  ConflictSeverity,
   EvidenceBundle,
   QueryEvidenceVirtualTree,
   QueryRunRequest,
   QueryStreamEvent,
+  Uuid,
 } from '../api-types'
+
+export type SpaceConflictListItem = {
+  traceId: Uuid
+  query: string
+  reason: string
+  severity: ConflictSeverity
+  withNodeId?: Uuid
+}
 import { MockServiceError } from '../api-types'
 import { PROTOTYPE_TRACE_IDS } from '../fixtures/scenarios'
 import { delay, emitStream } from './helpers'
@@ -33,6 +43,38 @@ export async function getQueryConflicts(traceId: string) {
 export async function getQueryMissing(traceId: string) {
   await delay(120)
   return getVirtualTree(traceId, 'missing')
+}
+
+export async function listSpaceConflicts(spaceId: string) {
+  await delay(140)
+  const store = getKnowledgeMockStore()
+  const items: SpaceConflictListItem[] = []
+
+  for (const trace of Object.values(store.traces)) {
+    if (trace.knowledgeSpaceId !== spaceId)
+      continue
+
+    const bundle = trace.evidenceBundleId
+      ? store.evidenceBundles[trace.evidenceBundleId]
+      : Object.values(store.evidenceBundles).find(entry => entry.traceId === trace.id)
+
+    if (!bundle)
+      continue
+
+    for (const evidenceItem of bundle.items) {
+      for (const conflict of evidenceItem.conflicts ?? []) {
+        items.push({
+          traceId: trace.id,
+          query: trace.query,
+          reason: conflict.reason,
+          severity: conflict.severity,
+          withNodeId: conflict.withNodeId,
+        })
+      }
+    }
+  }
+
+  return items.map(entry => structuredClone(entry))
 }
 
 export async function runQuery(

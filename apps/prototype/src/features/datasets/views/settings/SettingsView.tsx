@@ -13,15 +13,13 @@ import { Slider } from '@langgenius/dify-ui/slider'
 import { Switch } from '@langgenius/dify-ui/switch'
 import { Textarea } from '@langgenius/dify-ui/textarea'
 import { useState } from 'react'
+import { MockServiceError } from '../../api-types'
 import type { DatasetItem, RetrievalDepth } from '../../fixtures/items'
+import { resolveKnowledgeSpaceId } from '../../fixtures/knowledge-space-bridge'
 
 import {
-  ArtifactVersionSelect,
-  dayRetentionOptions,
   permissionFromItem,
   permissionOptions,
-  retentionOptions,
-  retrievalModeOptions,
   rowClass,
   SettingsDivider,
   SettingsFieldRow,
@@ -30,10 +28,21 @@ import {
   type Permission,
 } from './settings-layout'
 import { SettingsDatasetSections } from './settings-sections'
+import { useRetentionSettings } from './useRetentionSettings'
+
+function mockErrorMessage(error: unknown) {
+  if (error instanceof MockServiceError)
+    return `${error.status}: ${error.message}`
+  if (error instanceof Error)
+    return error.message
+  return 'Unexpected mock service error'
+}
 
 export function SettingsView({ item }: { item: DatasetItem }) {
   const config = item.settingsConfig
   const isExternal = item.provider === 'external'
+  const spaceId = resolveKnowledgeSpaceId(item.id)
+  const retention = useRetentionSettings(spaceId, !!config.retention)
 
   const [name, setName] = useState(item.name)
   const [description, setDescription] = useState(item.description)
@@ -55,17 +64,22 @@ export function SettingsView({ item }: { item: DatasetItem }) {
   const [embedding, setEmbedding] = useState(config.processingAndIndex?.embedding ?? '')
   const [indexStrategy, setIndexStrategy] = useState(config.processingAndIndex?.indexStrategy ?? '')
   const [pipelineNote, setPipelineNote] = useState(config.processingAndIndex?.pipelineNote ?? '')
-  const [rawDocumentRetention, setRawDocumentRetention] = useState<number | null>(config.retention?.rawDocumentRetentionDays ?? null)
-  const [artifactVersions, setArtifactVersions] = useState(config.retention?.parseArtifactVersions ?? 5)
-  const [answerTraceRetention, setAnswerTraceRetention] = useState(config.retention?.answerTraceRetentionDays ?? 30)
-  const [evidenceCacheRetention, setEvidenceCacheRetention] = useState(config.retention?.evidenceCacheRetentionDays ?? 7)
-  const [inactiveProjectionRetention, setInactiveProjectionRetention] = useState(config.retention?.inactiveProjectionRetentionDays ?? 90)
-  const [sessionInactivityMinutes, setSessionInactivityMinutes] = useState(config.retention?.sessionInactivityMinutes ?? 1440)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true)
-    window.setTimeout(() => setSaving(false), 400)
+    setSaveError(null)
+    try {
+      if (config.retention)
+        await retention.save()
+    }
+    catch (cause) {
+      setSaveError(mockErrorMessage(cause))
+    }
+    finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -154,6 +168,7 @@ export function SettingsView({ item }: { item: DatasetItem }) {
         item={item}
         isExternal={isExternal}
         config={config}
+        retention={retention}
         retrievalMode={retrievalMode}
         setRetrievalMode={setRetrievalMode}
         topK={topK}
@@ -176,24 +191,13 @@ export function SettingsView({ item }: { item: DatasetItem }) {
         setIndexStrategy={setIndexStrategy}
         pipelineNote={pipelineNote}
         setPipelineNote={setPipelineNote}
-        rawDocumentRetention={rawDocumentRetention}
-        setRawDocumentRetention={setRawDocumentRetention}
-        artifactVersions={artifactVersions}
-        setArtifactVersions={setArtifactVersions}
-        answerTraceRetention={answerTraceRetention}
-        setAnswerTraceRetention={setAnswerTraceRetention}
-        evidenceCacheRetention={evidenceCacheRetention}
-        setEvidenceCacheRetention={setEvidenceCacheRetention}
-        inactiveProjectionRetention={inactiveProjectionRetention}
-        setInactiveProjectionRetention={setInactiveProjectionRetention}
-        sessionInactivityMinutes={sessionInactivityMinutes}
-        setSessionInactivityMinutes={setSessionInactivityMinutes}
       />
 
       <div className={rowClass}>
         <div className="flex h-7 w-[180px] shrink-0 items-center pt-1" />
-        <div className="grow">
-          <Button variant="primary" className="min-w-24" loading={saving} onClick={handleSave}>
+        <div className="grow space-y-2">
+          {saveError && <p className="system-xs-regular text-util-colors-red-red-500">{saveError}</p>}
+          <Button variant="primary" className="min-w-24" loading={saving} onClick={() => void handleSave()}>
             Save
           </Button>
         </div>

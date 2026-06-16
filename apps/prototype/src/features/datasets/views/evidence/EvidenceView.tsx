@@ -37,8 +37,7 @@ export function EvidenceView({
     bundleState,
     traceId,
     freshness,
-    goldenQuestions,
-    setGoldenQuestions,
+    createGoldenQuestionFromQuery,
     streamSteps,
     answerText,
     traceDrawerOpen,
@@ -87,7 +86,7 @@ export function EvidenceView({
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-divider-subtle bg-background-default-subtle px-3 py-2">
             <span className="system-xs-medium text-text-tertiary">Trace ID</span>
             <code className="min-w-0 truncate system-xs-regular text-text-secondary">{traceId}</code>
-            <Button variant="secondary" size="small" onClick={() => createBadCaseFromTrace()}>Create bad case</Button>
+            <Button variant="secondary" size="small" onClick={() => void createBadCaseFromTrace()}>Create bad case</Button>
           </div>
 
           <StreamStepsPanel steps={streamSteps} running={running} />
@@ -138,12 +137,7 @@ export function EvidenceView({
             <Button
               variant="secondary"
               size="small"
-              onClick={() => {
-                const label = query.trim()
-                if (label && !goldenQuestions.includes(label))
-                  setGoldenQuestions(current => [label, ...current])
-                showToast('Golden question created.')
-              }}
+              onClick={() => void createGoldenQuestionFromQuery(query)}
             >
               Create golden question
             </Button>

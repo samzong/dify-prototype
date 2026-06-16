@@ -101,7 +101,6 @@ export function buildCreatedDataset({
       { label: 'Missing evidence', value: 'No data', tone: 'neutral' },
     ],
     qualityMissingTrend: 'No data',
-    commonFailureSources: [],
     settingsConfig: buildCreatedSettings(mode, id, initialPath),
     defaultQuery: '',
     evidenceTraceId: '',

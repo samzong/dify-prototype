@@ -224,7 +224,6 @@ export type DatasetItem = {
   badCases: string[]
   qualityStats: { label: string; value: string; tone: BadgeTone }[]
   qualityMissingTrend: string
-  commonFailureSources: string[]
   settingsConfig: DatasetSettingsConfig
   defaultQuery: string
   evidenceTraceId: string

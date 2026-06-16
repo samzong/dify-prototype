@@ -5,6 +5,8 @@ import {
   getKnowledgeSpaceManifest,
   getKnowledgeSpaceStats,
   getKnowledgeSpaceStatus,
+  listGoldenQuestions,
+  listSpaceConflicts,
 } from '../mock-services'
 import { StatusBadge } from '../components/badges'
 import type { DatasetDetailTab, DatasetItem } from '../fixtures/items'
@@ -14,8 +16,9 @@ import type {
   KnowledgeSpaceStats,
   KnowledgeSpaceStatus,
 } from '../api-types'
-import { formatKnowledgeSpaceUpdatedAt } from '../fixtures/knowledge-space-bridge'
+import { formatKnowledgeSpaceUpdatedAt, resolveKnowledgeSpaceId } from '../fixtures/knowledge-space-bridge'
 import { OverviewReadinessDashboard, OverviewSpaceMeta } from './overview/OverviewReadinessDashboard'
+import { buildOverviewQualitySignals, type OverviewQualitySignals } from './overview/overview-api-summary'
 
 export function OverviewView({
   item,
@@ -28,21 +31,32 @@ export function OverviewView({
   const [manifest, setManifest] = useState<KnowledgeSpaceManifest | null>(null)
   const [status, setStatus] = useState<KnowledgeSpaceStatus | null>(null)
   const [stats, setStats] = useState<KnowledgeSpaceStats | null>(null)
+  const [qualitySignals, setQualitySignals] = useState<OverviewQualitySignals | null>(null)
   const [apiLoading, setApiLoading] = useState(true)
   const [apiError, setApiError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
+    const spaceId = resolveKnowledgeSpaceId(item.id)
 
     async function loadApiSummary() {
       setApiLoading(true)
       setApiError(null)
       try {
-        const [spaceResult, manifestResult, statusResult, statsResult] = await Promise.all([
+        const [
+          spaceResult,
+          manifestResult,
+          statusResult,
+          statsResult,
+          conflicts,
+          goldenPage,
+        ] = await Promise.all([
           getKnowledgeSpace(item.id),
           getKnowledgeSpaceManifest(item.id),
           getKnowledgeSpaceStatus(item.id),
           getKnowledgeSpaceStats(item.id),
+          listSpaceConflicts(spaceId),
+          listGoldenQuestions(spaceId, { limit: 100 }),
         ])
         if (cancelled)
           return
@@ -50,6 +64,7 @@ export function OverviewView({
         setManifest(manifestResult)
         setStatus(statusResult)
         setStats(statsResult)
+        setQualitySignals(buildOverviewQualitySignals(item, conflicts.length, goldenPage.items.length))
       }
       catch (cause) {
         if (cancelled)
@@ -66,7 +81,7 @@ export function OverviewView({
     return () => {
       cancelled = true
     }
-  }, [item.id])
+  }, [item])
 
   const displayName = space?.name ?? item.name
   const displayUpdatedAt = space?.updatedAt
@@ -102,6 +117,7 @@ export function OverviewView({
         manifest={manifest}
         status={status}
         stats={stats}
+        qualitySignals={qualitySignals}
         loading={apiLoading}
         error={apiError}
         onNavigate={onNavigate}

@@ -42,12 +42,16 @@ export {
   getQueryEvidence,
   getQueryConflicts,
   getQueryMissing,
+  listSpaceConflicts,
   runQuery,
 } from './queries'
+
+export type { SpaceConflictListItem } from './queries'
 
 export {
   listGoldenQuestions,
   createGoldenQuestion,
+  updateGoldenQuestion,
   deleteGoldenQuestion,
   listProductionBadCases,
   createProductionBadCase,

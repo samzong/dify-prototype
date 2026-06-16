@@ -67,7 +67,7 @@ export const pageMeta: Record<DatasetDetailTab, { title: string; description: st
   },
   quality: {
     title: 'Quality',
-    description: 'Track answer traces, bad cases, and golden questions over time.',
+    description: 'Manage golden questions, production bad cases, and answer trace history.',
   },
   operations: {
     title: 'Operations',

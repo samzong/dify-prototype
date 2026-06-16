@@ -58,6 +58,41 @@ export async function deleteGoldenQuestion(spaceId: string, questionId: string) 
     throw new MockServiceError(404, 'Golden question not found')
 }
 
+export async function updateGoldenQuestion(
+  spaceId: string,
+  questionId: string,
+  patch: { question?: string; tags?: string[]; expectedEvidenceIds?: string[]; metadata?: Record<string, unknown> },
+) {
+  await delay(180)
+  let updated: GoldenQuestion | null = null
+
+  mutateKnowledgeMockStore((draft) => {
+    const list = draft.goldenQuestionsBySpaceId[spaceId] ?? []
+    const index = list.findIndex(item => item.id === questionId)
+    if (index === -1)
+      return
+
+    const current = list[index]!
+    const next: GoldenQuestion = {
+      ...current,
+      ...patch,
+      question: patch.question ?? current.question,
+      tags: patch.tags ?? current.tags,
+      expectedEvidenceIds: patch.expectedEvidenceIds ?? current.expectedEvidenceIds,
+      metadata: patch.metadata ?? current.metadata,
+      updatedAt: new Date().toISOString(),
+    }
+    list[index] = next
+    draft.goldenQuestionsBySpaceId[spaceId] = list
+    updated = structuredClone(next)
+  })
+
+  if (!updated)
+    throw new MockServiceError(404, 'Golden question not found')
+
+  return updated
+}
+
 export async function listProductionBadCases(spaceId: string) {
   await delay(140)
   return (getKnowledgeMockStore().badCasesBySpaceId[spaceId] ?? []).map(cloneBadCase)

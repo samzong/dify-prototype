@@ -63,7 +63,6 @@ export const sales_deckItem: DatasetItem =
       { label: 'Missing evidence', value: 'Building', tone: 'info' },
     ],
     qualityMissingTrend: 'Building',
-    commonFailureSources: ['enterprise-deck.pdf', 'screenshots.zip'],
     settingsConfig: {
       apiAccess: { serviceApiEnabled: true, externalApiEnabled: false },
       defaultRetrieval: {
